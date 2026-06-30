@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard TV 43" - RM/MOVER</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0d2a1e 0%, #14315c 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            padding: 14px;
+        }
+
+        /* ===== TELAS ===== */
+        .tela {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 14px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tela.ativa { display: flex; }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #0d4a2f 0%, #C9A227 100%);
+            border-radius: 12px;
+            padding: 10px 18px;
+            box-shadow: 0 4px 20px rgba(13,74,47,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .header-left { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; min-width: 200px; }
+        .header-center { text-align: center; flex: 1; }
+        .header h1 { font-size: 1.8em; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
+        .header .datetime { font-size: 0.85em; opacity: 0.95; font-weight: 500; }
+        .header .last-update { font-size: 0.75em; opacity: 0.8; font-style: italic; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; min-width: 160px; }
+
+        /* Indicador de tela */
+        .screen-indicator {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgba(0,0,0,0.25);
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .screen-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: background 0.3s;
+        }
+        .screen-dot.ativo { background: #06d6a0; }
+        .screen-timer-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            width: 100px;
+        }
+        .screen-timer-fill {
+            height: 100%;
+            background: #06d6a0;
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+
+        /* ===== LAYOUT TELA 1 (FROTA) ===== */
+        .frota-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+        /* Faixa de KPIs gigantes (Opção A) */
+        .kpi-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        /* Listas: Disponíveis | Manutenção | Parada */
+        .frota-cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr 300px;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+        .frota-cols .parada-section { flex: none; height: 100%; }
+        .kpi-card {
+            background: linear-gradient(135deg, #1e2139 0%, #2a2f4a 100%);
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.12);
+            border-bottom: 4px solid transparent;
+            border-image: linear-gradient(90deg, #06d6a0, #ffd166, #ff8c42, #ef476f, #9d4edd, #667eea) 1;
+            border-image-slice: 0 0 1 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 0;
+            position: relative;
+        }
+        .kpi-card.wide { grid-column: span 2; }
+        .kpi-card { padding: 24px 28px; }
+        .kpi-card .icon { font-size: 3.6em; flex-shrink: 0; }
+        .kpi-card .content { flex: 1; min-width: 0; }
+        .kpi-card .label { font-size: 1.2em; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; font-weight: 700; }
+        .kpi-card .value { font-size: 4.8em; font-weight: 800; line-height: 1; }
+        .kpi-card .subtitle { font-size: 0.95em; opacity: 0.7; margin-top: 6px; }
+
+        /* Card Parada Programada */
+        .parada-section {
+            background: linear-gradient(135deg, #1e2139 0%, #2a2f4a 100%);
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.12);
+            border-left: 6px solid #ff6b35;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .parada-section h3 {
+            font-size: 0.85em;
+            font-weight: 700;
+            color: #ff6b35;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .parada-lista {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .parada-item {
+            background: rgba(255,107,53,0.1);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border-left: 3px solid #ff6b35;
+            font-size: 0.75em;
+        }
+        .parada-item .prefixo {
+            font-weight: 700;
+            color: #ff6b35;
+        }
+        .parada-item .info {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        .parada-item .data {
+            font-size: 0.8em;
+            color: #ffd166;
+            margin-top: 2px;
+        }
+        .parada-item.atrasada {
+            border-left: 3px solid #ff4444;
+            background: rgba(255,68,68,0.1);
+        }
+        .parada-item.atrasada .data {
+            color: #ff4444;
+        }
+
+        /* Vehicle sections */
+        .vehicle-section {
+            background: linear-gradient(135deg, #1e2139 0%, #2a2f4a 100%);
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.12);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .vehicle-section h2 {
+            font-size: 1.4em;
+            margin-bottom: 10px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .vehicle-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+            overflow-y: auto;
+            align-content: start;
+            flex: 1;
+            min-height: 0;
+        }
+        /* Cards GRANDES para chamar atenção na TV (encolhem pouquíssimo) */
+        .vehicle-list.size-medium { grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)); gap: 14px; }
+        .vehicle-list.size-small { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px; }
+        .vehicle-list.size-tiny { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .vehicle-list.size-medium .vehicle-prefix { font-size: 2.7em; }
+        .vehicle-list.size-small .vehicle-prefix { font-size: 2.5em; }
+        .vehicle-list.size-tiny .vehicle-prefix { font-size: 2.3em; }
+        .vehicle-item {
+            background: rgba(255,255,255,0.08);
+            padding: 18px 20px;
+            border-radius: 14px;
+            border: 2px solid rgba(255,255,255,0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: fadeIn 0.4s ease;
+        }
+        .vehicle-prefix { font-size: 2.9em; font-weight: 800; color: #5b8def; line-height: 1; }
+        .vehicle-model { font-size: 1.2em; opacity: 0.9; font-weight: 600; }
+        .vehicle-plate { font-size: 1em; opacity: 0.65; }
+        .vehicle-status {
+            padding: 5px 16px; border-radius: 16px; font-size: 1em;
+            font-weight: 700; margin-top: 7px; display: inline-block;
+        }
+        .status-disponivel { background: #06d6a0; color: #000; }
+        .status-alugado { background: #ffd166; color: #000; }
+        .status-manutencao { background: #ef476f; color: #fff; }
+        .status-mecanica { background: #ff9f1c; color: #000; }
+        .status-funilaria { background: #9d4edd; color: #fff; }
+        .status-eletrica { background: #3a86ff; color: #fff; }
+        .status-venda { background: #f72585; color: #fff; }
+        .status-reservado { background: #4cc9f0; color: #000; }
+        .vehicle-date-info { font-size: 0.6em; margin-top: 3px; opacity: 0.75; color: #ffd166; }
+        .manutencao-atrasada {
+            border: 3px solid #ff4444 !important;
+            animation: pulse-red 1.5s infinite;
+            box-shadow: 0 0 20px rgba(255,68,68,0.6) !important;
+        }
+
+        /* ===== LAYOUT TELA 2 (MOTORISTAS) ===== */
+        .motoristas-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            flex: 1;
+            min-height: 0;
+        }
+        .motoristas-section {
+            background: linear-gradient(135deg, #1e2139 0%, #2a2f4a 100%);
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.12);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .motoristas-section h2 {
+            font-size: 1.7em;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        .motoristas-section.disponiveis h2 { color: #06d6a0; border-color: rgba(6,214,160,0.3); }
+        .motoristas-section.carros h2 { color: #667eea; border-color: rgba(102,126,234,0.3); }
+        .motoristas-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .motorista-card {
+            background: rgba(6,214,160,0.08);
+            border: 2px solid rgba(6,214,160,0.25);
+            border-radius: 14px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            animation: fadeIn 0.4s ease;
+        }
+        .motorista-avatar {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #06d6a0 0%, #05a377 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2em; font-weight: 800; color: #000; flex-shrink: 0;
+        }
+        .motorista-info { flex: 1; min-width: 0; }
+        .motorista-nome { font-size: 1.55em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .motorista-posicao { font-size: 1.05em; opacity: 0.75; margin-top: 3px; }
+        .motorista-badge {
+            padding: 7px 16px; border-radius: 20px; font-size: 1em;
+            font-weight: 700; text-transform: uppercase; flex-shrink: 0;
+        }
+        .badge-aguardando { background: linear-gradient(135deg, #ffd166, #f4a261); color: #000; }
+
+        .carro-card {
+            background: rgba(102,126,234,0.08);
+            border: 2px solid rgba(102,126,234,0.25);
+            border-radius: 14px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            animation: fadeIn 0.4s ease;
+        }
+        .carro-prefixo-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 1.9em; font-weight: 800; color: #fff;
+            flex-shrink: 0; text-align: center; min-width: 80px;
+        }
+        .carro-info { flex: 1; min-width: 0; }
+        .carro-modelo { font-size: 1.45em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .carro-placa { font-size: 1em; opacity: 0.6; margin-top: 2px; }
+        .carro-desde { font-size: 1em; color: #ffd166; margin-top: 3px; }
+        .tipo-motorista-badge {
+            padding: 6px 14px; border-radius: 20px; font-size: 0.95em;
+            font-weight: 700; text-transform: uppercase; flex-shrink: 0;
+        }
+        .tipo-novo { background: linear-gradient(135deg, #06d6a0, #05a377); color: #000; }
+        .tipo-troca { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .tipo-ativo { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; }
+
+        /* Stats */
+        .motoristas-stats {
+            display: flex;
+            gap: 14px;
+            flex-shrink: 0;
+            margin-bottom: 12px;
+        }
+        .stat-pill {
+            background: rgba(255,255,255,0.08);
+            border-radius: 22px;
+            padding: 10px 22px;
+            font-size: 1.25em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-pill span { font-size: 1.5em; font-weight: 800; }
+
+        /* Temperatura (canto superior esquerdo) */
+        .weather { font-size: 1.5em; font-weight: 800; opacity: 0.98; margin-bottom: 6px; }
+        /* Saudação por turno */
+        .saudacao { font-size: 1.25em; font-weight: 700; color: #ffe9a8; margin-bottom: 2px; }
+        /* Remover o indicador de timer/telas do canto superior direito */
+        .header-right { display: none !important; }
+        /* Barra de progresso da meta de ocupação */
+        .meta-bar {
+            width: 100%; height: 12px; background: rgba(255,255,255,0.15);
+            border-radius: 8px; overflow: hidden; margin-top: 8px;
+        }
+        .meta-fill {
+            height: 100%; width: 0%; border-radius: 8px;
+            background: #06d6a0; transition: width 0.6s ease, background 0.4s ease;
+        }
+
+        /* Botões flutuantes */
+        .fullscreen-btn {
+            position: fixed; bottom: 16px; right: 12px;
+            background: rgba(102,126,234,0.75); border: none;
+            border-radius: 50%; width: 36px; height: 36px;
+            font-size: 0.95em; cursor: pointer; z-index: 1000;
+        }
+        .settings-btn {
+            position: fixed; bottom: 16px; right: 56px;
+            background: rgba(201,162,39,0.85); border: none;
+            border-radius: 50%; width: 36px; height: 36px;
+            font-size: 0.95em; cursor: pointer; z-index: 1000;
+        }
+        .settings-panel {
+            position: fixed; bottom: 60px; right: 12px;
+            background: #14315c; color: #fff;
+            border: 2px solid #C9A227; border-radius: 14px;
+            padding: 18px 20px; z-index: 1001; width: 300px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: none; flex-direction: column; gap: 12px;
+        }
+        .settings-panel.aberto { display: flex; }
+        .settings-panel h3 { font-size: 1.1em; color: #C9A227; }
+        .settings-panel label { display: flex; flex-direction: column; gap: 6px; font-size: 0.9em; }
+        .settings-panel input {
+            padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 1.1em;
+        }
+        .settings-actions { display: flex; gap: 10px; margin-top: 4px; }
+        .settings-actions button {
+            flex: 1; padding: 10px; border-radius: 8px; border: none; cursor: pointer;
+            font-weight: 700; background: #C9A227; color: #14315c;
+        }
+        .settings-actions button.secundario { background: rgba(255,255,255,0.15); color: #fff; }
+        .settings-hint { font-size: 0.75em; opacity: 0.7; }
+
+        /* Celebração */
+        .celebration { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+        .confetti { position: absolute; width: 10px; height: 10px; background: #ffd166; animation: confetti-fall 3s linear forwards; }
+
+        /* Animações */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes confetti-fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+        @keyframes confeteFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+        @keyframes fogosParticula { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+        @keyframes pulse-red {
+            0%, 100% { border-color: #ff4444; box-shadow: 0 0 20px rgba(255,68,68,0.6); }
+            50% { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.9); }
+        }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        .tela-1-enter { animation: slideInLeft 0.6s ease; }
+        .tela-2-enter { animation: slideInRight 0.6s ease; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+        /* ======================================================= */
+        /* ===== TEMA "CORES 2 — CLARO VIVO" (override final) ===== */
+        /* ======================================================= */
+        body { background: linear-gradient(135deg, #f6f3ea 0%, #e7e1cf 100%); color: #16243d; }
+        /* Cabeçalho permanece escuro (verde→dourado) com texto claro */
+        .header, .header h1 { color: #ffffff; }
+        .saudacao { color: #fff4cf; }
+        .header .weather, #weather1, #weather2 { color: #ffffff; }
+        /* KPIs em cores sólidas e vivas */
+        .kpi-card { border: none; border-image: none; box-shadow: 0 8px 22px rgba(0,0,0,0.18); }
+        .kpi-ocupacao   { background: linear-gradient(135deg, #0d4a2f, #0a3a25); color: #fff; }
+        .kpi-disponiveis{ background: linear-gradient(135deg, #06d6a0, #04a37a); color: #04241b; }
+        .kpi-alugados   { background: linear-gradient(135deg, #1d4ed8, #14315c); color: #fff; }
+        .kpi-manutencao { background: linear-gradient(135deg, #f08a1d, #d2691e); color: #2a1500; }
+        /* Seções e cards claros, texto escuro */
+        .vehicle-section, .parada-section, .motoristas-section {
+            background: #ffffff; color: #16243d; border: 2px solid rgba(0,0,0,0.07);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+        }
+        .vehicle-section h2 { color: #0d4a2f; }
+        .vehicle-item { background: #f3f0e6; border: 2px solid rgba(0,0,0,0.09); }
+        .vehicle-prefix { color: #14315c; }
+        .vehicle-model, .vehicle-plate { color: #16243d; }
+        .parada-section h3 { color: #d2691e; }
+        .parada-item { background: rgba(240,138,29,0.14); color: #3a2400; }
+        .parada-item .prefixo { color: #b5560a; }
+        .motorista-card { background: rgba(6,214,160,0.14); border-color: rgba(5,140,110,0.45); }
+        .carro-card { background: rgba(29,78,216,0.10); border-color: rgba(29,78,216,0.35); }
+        .motorista-nome, .carro-modelo { color: #16243d; }
+        .motorista-posicao, .carro-placa { color: #3a4659; }
+        .stat-pill { background: rgba(0,0,0,0.06); color: #16243d; }
+        .meta-bar { background: rgba(0,0,0,0.12); }
+    </style>
+</head>
+<body>
+    <div class="celebration" id="celebration"></div>
+
+    <!-- ===== TELA 1: POSIÇÃO DA FROTA ===== -->
+    <div class="tela ativa" id="tela1">
+        <div class="header">
+            <div class="header-left">
+                <div class="weather" id="weather1">🌡️ --°C</div>
+                <div id="comparacaoInfo" style="background:rgba(0,0,0,0.25);padding:5px 12px;border-radius:12px;font-size:0.8em;font-weight:600;">
+                    <span id="comparacaoTexto">Carregando...</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="saudacao" id="saudacao1">Olá! 👋</div>
+                <h1 id="nomeEmpresa">🚖 RM/MOVER</h1>
+                <div class="datetime" id="datetime1"></div>
+                <div class="last-update" id="lastUpdate1">Conectando à planilha...</div>
+            </div>
+            <div class="header-right">
+                <div class="screen-indicator">
+                    <div class="screen-dot ativo" id="dot1"></div>
+                    <div class="screen-dot" id="dot2"></div>
+                    <span id="telaLabel" style="font-size:0.85em;">Frota</span>
+                </div>
+                <div class="screen-timer-bar">
+                    <div class="screen-timer-fill" id="timerFill1" style="width:100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body Frota (Opção A: KPIs gigantes no topo) -->
+        <div class="frota-body">
+            <div class="kpi-bar">
+                <div class="kpi-card kpi-ocupacao">
+                    <div class="icon">📋</div>
+                    <div class="content">
+                        <div class="label">Ocupação</div>
+                        <div class="value" id="ocupacao">0%</div>
+                        <div class="meta-bar"><div class="meta-fill" id="metaFill"></div></div>
+                        <div class="subtitle" id="metaOcupacao">Meta: 95%</div>
+                    </div>
+                </div>
+                <div class="kpi-card kpi-disponiveis">
+                    <div class="icon">✅</div>
+                    <div class="content">
+                        <div class="label">Disponíveis</div>
+                        <div class="value" id="disponiveis">0</div>
+                        <div class="subtitle">Prontos para alugar</div>
+                    </div>
+                </div>
+                <div class="kpi-card kpi-alugados">
+                    <div class="icon">🚗</div>
+                    <div class="content">
+                        <div class="label">Alugados</div>
+                        <div class="value" id="alugados">0</div>
+                        <div class="subtitle">Em operação</div>
+                    </div>
+                </div>
+                <div class="kpi-card kpi-manutencao">
+                    <div class="icon">🔧</div>
+                    <div class="content">
+                        <div class="label">Em Manutenção</div>
+                        <div class="value" id="manutencao">0</div>
+                        <div class="subtitle">Em reparo / oficina</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="frota-cols">
+                <div class="vehicle-section">
+                    <h2>✅ Veículos Disponíveis (<span id="countDisponiveis">0</span>)</h2>
+                    <div class="vehicle-list" id="disponiveisList">
+                        <div style="opacity:0.6;text-align:center;padding:30px;">Carregando...</div>
+                    </div>
+                </div>
+                <div class="vehicle-section">
+                    <h2>🔧 Veículos em Manutenção (<span id="countManutencao">0</span>)</h2>
+                    <div class="vehicle-list" id="manutencaoList">
+                        <div style="opacity:0.6;text-align:center;padding:30px;">Carregando...</div>
+                    </div>
+                </div>
+                <div class="parada-section">
+                    <h3>⏸️ Parada Programada / Previsões</h3>
+                    <div class="parada-lista" id="paradaLista">
+                        <div style="opacity:0.5;text-align:center;padding:15px;font-size:0.85em;">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TELA 2: MOTORISTAS + CARROS DISPONÍVEIS ===== -->
+    <div class="tela" id="tela2">
+        <div class="header">
+            <div class="header-left">
+                <div class="weather" id="weather2">🌡️ --°C</div>
+                <div style="background:rgba(0,0,0,0.25);padding:5px 12px;border-radius:12px;font-size:0.8em;font-weight:600;">
+                    <span id="sheetsStatus">Carregando planilha...</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="saudacao" id="saudacao2">Olá! 👋</div>
+                <h1>🚖 RM/MOVER</h1>
+                <div class="datetime" id="datetime2"></div>
+                <div class="last-update" id="lastUpdate2">Posição de Motoristas e Carros Disponíveis</div>
+            </div>
+            <div class="header-right">
+                <div class="screen-indicator">
+                    <div class="screen-dot" id="dot1b"></div>
+                    <div class="screen-dot ativo" id="dot2b"></div>
+                    <span style="font-size:0.85em;">Motoristas</span>
+                </div>
+                <div class="screen-timer-bar">
+                    <div class="screen-timer-fill" id="timerFill2" style="width:100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="motoristas-stats">
+            <div class="stat-pill">⏳ Aguardando Carro: <span id="countLiberados">0</span></div>
+            <div class="stat-pill">🔵 Carros Disponíveis: <span id="countCarrosDisp">0</span></div>
+        </div>
+
+        <div class="motoristas-body">
+            <div class="motoristas-section disponiveis">
+                <h2>⏳ Motoristas Aguardando Carro</h2>
+                <div class="motoristas-lista" id="motoristasLista">
+                    <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando planilha...</div>
+                </div>
+            </div>
+            <div class="motoristas-section carros">
+                <h2>🚗 Carros Disponíveis para Locação</h2>
+                <div class="motoristas-lista" id="carrosDispLista">
+                    <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão tela cheia -->
+    <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Tela Cheia">⛶</button>
+    <button class="settings-btn" id="settingsBtn" title="Configurar tempo das telas">⚙️</button>
+    <div class="settings-panel" id="settingsPanel">
+        <h3>⚙️ Tempo de cada tela</h3>
+        <label>Tela Frota (segundos)
+            <input type="number" id="inpTela1" min="5" max="600" step="5">
+        </label>
+        <label>Tela Motoristas (segundos)
+            <input type="number" id="inpTela2" min="5" max="600" step="5">
+        </label>
+        <div class="settings-actions">
+            <button id="settingsSalvar">Salvar</button>
+            <button id="settingsFechar" class="secundario">Fechar</button>
+        </div>
+        <div class="settings-hint">As trocas de tela passam a usar esse tempo na hora.</div>
+    </div>
+
+    <script>
+        // ===== CONFIGURAÇÃO =====
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyjPguI-YgSRgn7gt7VcQynI2S5aMGSn_n0RKM3sZxw87wm8qSDHMbZs3_BF8TdzGY9/exec';
+        const API_MOTORISTAS_URL = 'https://script.google.com/macros/s/AKfycbx6e6X2i9mOPFtk-tj0Pi4l-gV74O4OwQLuyn78CALeRpBh7zzOU9UmWEo_czG9FppOLg/exec';
+        const META_OCUPACAO = 95;
+        const INTERVALO_ATUALIZACAO = 60000; // 60 segundos
+
+        let veiculos = [];
+        let motoristas = [];
+        let statusAnterior = {};
+        let ocupacaoOntem = null;
+        let historicoDiario = {};
+
+        // Rotação de telas
+        let telaAtual = 1;
+        let TELA1_DURACAO = 120;
+        let TELA2_DURACAO = 120;
+        let telaTimer = TELA1_DURACAO;
+
+        // ===== DATA/HORA =====
+        function atualizarDataHora() {
+            const agora = new Date();
+            const opcoes = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' };
+            const texto = agora.toLocaleDateString('pt-BR', opcoes);
+            document.getElementById('datetime1').textContent = texto;
+            document.getElementById('datetime2').textContent = texto;
+        }
+
+        // ===== PARSEAR DATA (suporta vários formatos) =====
+        function parsearData(str) {
+            if (!str || str === '') return null;
+            // Tentar formato ISO (YYYY-MM-DD)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str + 'T00:00:00');
+            // Tentar formato BR (DD/MM/YYYY)
+            const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (brMatch) return new Date(brMatch[3], brMatch[2]-1, brMatch[1]);
+            // Tentar new Date direto (para strings como "Tue Apr 07 2026...")
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) return d;
+            return null;
+        }
+
+        // ===== BUSCAR DADOS DA API (GOOGLE SHEETS) =====
+        async function buscarDadosFrota() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const dados = await response.json();
+
+                const novosVeiculos = dados.veiculos || [];
+                if (novosVeiculos.length > 0) {
+                    detectarMudancasStatus(novosVeiculos);
+                    veiculos = novosVeiculos;
+                }
+
+                atualizarDashboard();
+                salvarOcupacaoDoDia();
+                // Som removido da atualização automática - toca apenas nas celebrações
+
+                const agora = new Date();
+                const hora = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+                document.getElementById('lastUpdate1').textContent = `Última atualização: ${hora}`;
+                console.log(`✅ Frota atualizada: ${veiculos.length} veículos`);
+
+            } catch(err) {
+                console.error('Erro ao buscar frota:', err);
+                document.getElementById('lastUpdate1').textContent = '⚠️ Erro ao conectar';
+            }
+        }
+
+        // ===== ATUALIZAR DASHBOARD =====
+        function atualizarDashboard() {
+            const total = veiculos.length;
+            const disponiveis = veiculos.filter(v => v.status === 'disponivel').length;
+            const alugados = veiculos.filter(v => v.status === 'alugado').length;
+            const manutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica'].includes(v.status)).length;
+            const ocupacao = total > 0 ? Math.round((alugados / total) * 100) : 0;
+
+            document.getElementById('ocupacao').textContent = `${ocupacao}%`;
+            document.getElementById('metaOcupacao').textContent = `Meta: ${META_OCUPACAO}%`;
+            document.getElementById('disponiveis').textContent = disponiveis;
+            document.getElementById('alugados').textContent = alugados;
+            document.getElementById('manutencao').textContent = manutencao;
+            document.getElementById('countDisponiveis').textContent = disponiveis;
+            document.getElementById('countManutencao').textContent = manutencao;
+
+            // Cor da ocupação
+            const ocupEl = document.getElementById('ocupacao');
+            if (ocupacao >= META_OCUPACAO) ocupEl.style.color = '#06d6a0';
+            else if (ocupacao >= META_OCUPACAO - 10) ocupEl.style.color = '#ffd166';
+            else ocupEl.style.color = '#ef476f';
+
+            atualizarComparacao(ocupacao);
+
+            // Veículos disponíveis
+            const disponiveisList = document.getElementById('disponiveisList');
+            const veiculosDisponiveis = veiculos.filter(v => v.status === 'disponivel');
+            if (veiculosDisponiveis.length === 0) {
+                disponiveisList.innerHTML = '<div style="opacity:0.6;text-align:center;padding:30px;">Nenhum veículo disponível</div>';
+            } else {
+                disponiveisList.innerHTML = veiculosDisponiveis.map(v => {
+                    let tipoBadge = '';
+                    if (v.tipo_motorista === 'novo') tipoBadge = `<span style="margin-top:3px;display:inline-block;background:linear-gradient(135deg,#06d6a0,#05a377);color:#000;padding:2px 7px;border-radius:8px;font-size:0.58em;font-weight:700;">🆕 Novo Mot.</span>`;
+                    else if (v.tipo_motorista === 'troca') tipoBadge = `<span style="margin-top:3px;display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:2px 7px;border-radius:8px;font-size:0.58em;font-weight:700;">🔄 Troca</span>`;
+                    else if (v.tipo_motorista === 'ativo') tipoBadge = `<span style="margin-top:3px;display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;padding:2px 7px;border-radius:8px;font-size:0.58em;font-weight:700;">✅ Mot. Ativo</span>`;
+                    
+                    return `
+                        <div class="vehicle-item">
+                            <div class="vehicle-prefix">${v.prefixo}</div>
+                            <div class="vehicle-model">${v.modelo}</div>
+                            <div class="vehicle-plate">${v.placa}</div>
+                            <span class="vehicle-status status-disponivel">Disponível</span>
+                            ${tipoBadge}
+                        </div>`;
+                }).join('');
+            }
+
+            // Veículos em manutenção
+            const manutencaoList = document.getElementById('manutencaoList');
+            const veiculosManutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica'].includes(v.status));
+            if (veiculosManutencao.length === 0) {
+                manutencaoList.innerHTML = '<div style="opacity:0.6;text-align:center;padding:30px;">Nenhum veículo em manutenção 🎉</div>';
+            } else {
+                manutencaoList.innerHTML = veiculosManutencao.map(v => {
+                    const statusMap = { mecanica: ['status-mecanica','Mecânica'], funilaria: ['status-funilaria','Funilaria'], eletrica: ['status-eletrica','Elétrica'] };
+                    const [sc, st] = statusMap[v.status] || ['status-manutencao','Manutenção'];
+                    
+                    let previsaoHTML = '';
+                    if (v.previsao_entrega) {
+                        const dataP = parsearData(v.previsao_entrega);
+                        const hoje = new Date(); hoje.setHours(0,0,0,0);
+                        const vencida = dataP && dataP < hoje;
+                        const dataFmt = dataP ? dataP.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'}) : v.previsao_entrega;
+                        const cor = vencida ? '#ff4444' : '#06d6a0';
+                        previsaoHTML = `<div class="vehicle-date-info" style="color:${cor};">📅 ${dataFmt}${vencida ? ' ⚠️' : ''}</div>`;
+                        if (v.nova_previsao) {
+                            const novaD = parsearData(v.nova_previsao);
+                            const novaFmt = novaD ? novaD.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'}) : v.nova_previsao;
+                            previsaoHTML += `<div class="vehicle-date-info" style="color:#06d6a0;">🔄 Nova: ${novaFmt}</div>`;
+                        }
+                    }
+                    
+                    const atrasadoData = v.previsao_entrega ? parsearData(v.previsao_entrega) : null;
+                    const atrasado = atrasadoData && atrasadoData < new Date() ? 'manutencao-atrasada' : '';
+                    
+                    return `
+                        <div class="vehicle-item ${atrasado}">
+                            <div class="vehicle-prefix">${v.prefixo}</div>
+                            <div class="vehicle-model">${v.modelo}</div>
+                            <div class="vehicle-plate">${v.placa}</div>
+                            <span class="vehicle-status ${sc}">${st}</span>
+                            ${previsaoHTML}
+                        </div>`;
+                }).join('');
+            }
+
+            // ===== PARADA PROGRAMADA =====
+            const paradaLista = document.getElementById('paradaLista');
+            // Mostrar TODOS os veículos que têm data_programada preenchida
+            const veiculosComPrevisao = veiculos.filter(v => 
+                v.data_programada && v.data_programada !== ''
+            );
+            
+            if (veiculosComPrevisao.length === 0) {
+                paradaLista.innerHTML = '<div style="opacity:0.5;text-align:center;padding:15px;font-size:0.85em;">Nenhuma parada programada</div>';
+            } else {
+                paradaLista.innerHTML = veiculosComPrevisao.map(v => {
+                    const dataP = parsearData(v.data_programada);
+                    const hoje = new Date(); hoje.setHours(0,0,0,0);
+                    const vencida = dataP && dataP < hoje;
+                    const dataFmt = dataP ? dataP.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'}) : v.data_programada;
+                    const classeAtrasada = vencida ? 'atrasada' : '';
+                    
+                    // Badge de status do veículo
+                    const statusLabel = v.status === 'alugado' ? '🚗 Alugado' : 
+                                       v.status === 'disponivel' ? '✅ Disponível' :
+                                       v.status === 'manutencao' ? '🔧 Manutenção' :
+                                       v.status === 'mecanica' ? '🔧 Mecânica' :
+                                       v.status === 'funilaria' ? '🔧 Funilaria' :
+                                       v.status === 'eletrica' ? '🔧 Elétrica' : v.status;
+                    
+                    return `
+                        <div class="parada-item ${classeAtrasada}">
+                            <div class="prefixo">${v.prefixo} - ${v.placa} (${v.modelo})</div>
+                            <div class="info">${statusLabel}</div>
+                            <div class="data">${vencida ? '⚠️ ATRASADO' : '📅'} Parada: ${dataFmt}</div>
+                        </div>`;
+                }).join('');
+            }
+
+            ajustarTamanhoCards();
+            renderizarCarrosDisp();
+        }
+
+        // ===== AJUSTAR TAMANHO CARDS =====
+        function ajustarTamanhoCards() {
+            [document.getElementById('disponiveisList'), document.getElementById('manutencaoList')].forEach(lista => {
+                if (!lista) return;
+                const n = lista.querySelectorAll('.vehicle-item').length;
+                lista.classList.remove('size-medium','size-small','size-tiny');
+                if (n > 6) lista.classList.add('size-tiny');
+                else if (n > 4) lista.classList.add('size-small');
+                else if (n > 3) lista.classList.add('size-medium');
+            });
+        }
+
+        // ===== MOTORISTAS =====
+        async function atualizarMotoristas() {
+            try {
+                const response = await fetch(API_MOTORISTAS_URL);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const dados = await response.json();
+
+                motoristas = (dados.motoristas || []).map(m => ({
+                    nome: m.nome,
+                    posicao: m.posicao,
+                    status: 'liberado'
+                }));
+                renderizarMotoristas();
+                
+                const agora = new Date();
+                const hora = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+                document.getElementById('sheetsStatus').textContent = `✅ Atualizado às ${hora}`;
+
+            } catch(err) {
+                console.error('Erro motoristas:', err);
+                document.getElementById('sheetsStatus').textContent = '⚠️ Erro ao carregar';
+            }
+        }
+
+        function parsearCSVMotoristas(csv) {
+            const linhas = csv.split('\n').filter(l => l.trim());
+            const resultado = [];
+            let headerIdx = -1;
+            for (let i = 0; i < linhas.length; i++) {
+                const linha = linhas[i].toLowerCase();
+                if (linha.includes('nome') && (linha.includes('posicao') || linha.includes('posição'))) {
+                    headerIdx = i; break;
+                }
+            }
+            if (headerIdx === -1) headerIdx = 2;
+            const headers = parsearLinhaCSV(linhas[headerIdx]).map(h => h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+            const idxNome = headers.findIndex(h => h.includes('nome'));
+            const idxPosicao = headers.findIndex(h => h.includes('posicao') || h.includes('posicão'));
+            
+            for (let i = headerIdx + 1; i < linhas.length; i++) {
+                const cols = parsearLinhaCSV(linhas[i]);
+                if (!cols || cols.length < 2) continue;
+                const nome = (idxNome >= 0 ? cols[idxNome] : cols[0])?.trim();
+                const posicao = (idxPosicao >= 0 ? cols[idxPosicao] : cols[1])?.trim() || '';
+                if (!nome) continue;
+                const posicaoNorm = posicao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (!posicaoNorm.includes('aguardando carro')) continue;
+                resultado.push({ nome, posicao, status: 'liberado' });
+            }
+            return resultado;
+        }
+
+        function parsearLinhaCSV(linha) {
+            const resultado = [];
+            let atual = '';
+            let dentroAspas = false;
+            for (let i = 0; i < linha.length; i++) {
+                const char = linha[i];
+                if (char === '"') dentroAspas = !dentroAspas;
+                else if (char === ',' && !dentroAspas) { resultado.push(atual); atual = ''; }
+                else atual += char;
+            }
+            resultado.push(atual);
+            return resultado;
+        }
+
+        function renderizarMotoristas() {
+            const lista = document.getElementById('motoristasLista');
+            document.getElementById('countLiberados').textContent = motoristas.length;
+            
+            if (motoristas.length === 0) {
+                lista.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">✅ Nenhum motorista aguardando carro</div>';
+                return;
+            }
+            lista.innerHTML = motoristas.map(m => {
+                const inicial = m.nome.charAt(0).toUpperCase();
+                return `
+                    <div class="motorista-card">
+                        <div class="motorista-avatar">${inicial}</div>
+                        <div class="motorista-info">
+                            <div class="motorista-nome">${m.nome}</div>
+                            <div class="motorista-posicao">🚗 Aguardando Carro</div>
+                        </div>
+                        <span class="motorista-badge badge-aguardando">⏳ Aguardando</span>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderizarCarrosDisp() {
+            const lista = document.getElementById('carrosDispLista');
+            const disponiveisCarros = veiculos.filter(v => v.status === 'disponivel');
+            document.getElementById('countCarrosDisp').textContent = disponiveisCarros.length;
+            
+            if (disponiveisCarros.length === 0) {
+                lista.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Nenhum carro disponível</div>';
+                return;
+            }
+            lista.innerHTML = disponiveisCarros.map(v => {
+                let tipoBadge = '';
+                if (v.tipo_motorista === 'novo') tipoBadge = '<span class="tipo-motorista-badge tipo-novo">🆕 Novo</span>';
+                else if (v.tipo_motorista === 'troca') tipoBadge = '<span class="tipo-motorista-badge tipo-troca">🔄 Troca</span>';
+                else if (v.tipo_motorista === 'ativo') tipoBadge = '<span class="tipo-motorista-badge tipo-ativo">✅ Ativo</span>';
+                
+                return `
+                    <div class="carro-card">
+                        <div class="carro-prefixo-badge">${v.prefixo}</div>
+                        <div class="carro-info">
+                            <div class="carro-modelo">${v.modelo}</div>
+                            <div class="carro-placa">${v.placa}</div>
+                        </div>
+                        ${tipoBadge}
+                    </div>`;
+            }).join('');
+        }
+
+        // ===== ROTAÇÃO DE TELAS =====
+        function trocarTela() {
+            const tela1 = document.getElementById('tela1');
+            const tela2 = document.getElementById('tela2');
+            if (telaAtual === 1) {
+                tela1.classList.remove('ativa');
+                tela2.classList.add('ativa');
+                tela2.classList.add('tela-2-enter');
+                setTimeout(() => tela2.classList.remove('tela-2-enter'), 600);
+                document.getElementById('dot1').classList.remove('ativo');
+                document.getElementById('dot2').classList.add('ativo');
+                document.getElementById('dot1b').classList.remove('ativo');
+                document.getElementById('dot2b').classList.add('ativo');
+                telaAtual = 2;
+                telaTimer = TELA2_DURACAO;
+                renderizarCarrosDisp();
+            } else {
+                tela2.classList.remove('ativa');
+                tela1.classList.add('ativa');
+                tela1.classList.add('tela-1-enter');
+                setTimeout(() => tela1.classList.remove('tela-1-enter'), 600);
+                document.getElementById('dot1').classList.add('ativo');
+                document.getElementById('dot2').classList.remove('ativo');
+                document.getElementById('dot1b').classList.add('ativo');
+                document.getElementById('dot2b').classList.remove('ativo');
+                telaAtual = 1;
+                telaTimer = TELA1_DURACAO;
+            }
+        }
+
+        function updateTelaTimer() {
+            telaTimer--;
+            const duracao = telaAtual === 1 ? TELA1_DURACAO : TELA2_DURACAO;
+            const pct = (telaTimer / duracao) * 100;
+            document.getElementById('timerFill1').style.width = pct + '%';
+            document.getElementById('timerFill2').style.width = pct + '%';
+            if (telaTimer <= 0) trocarTela();
+        }
+
+        // ===== COMPARAÇÃO =====
+        function atualizarComparacao(ocupacao) {
+            if (ocupacaoOntem === null) {
+                document.getElementById('comparacaoTexto').innerHTML = `<span style="color:#ffd166">📊 Hoje: ${ocupacao}% | Ontem: Sem dados</span>`;
+                return;
+            }
+            const dif = ocupacao - ocupacaoOntem;
+            const sinal = dif > 0 ? '📈' : dif < 0 ? '📉' : '➡️';
+            const cor = dif > 0 ? '#06d6a0' : dif < 0 ? '#ff4444' : '#ffd166';
+            const textoVar = dif !== 0 ? `${dif > 0 ? '+' : ''}${dif}%` : 'igual';
+            document.getElementById('comparacaoTexto').innerHTML = `<span style="color:${cor}">${sinal} Ontem: ${ocupacaoOntem}% | Hoje: ${ocupacao}% (${textoVar})</span>`;
+        }
+
+        function salvarOcupacaoDoDia() {
+            const total = veiculos.length;
+            const alugados = veiculos.filter(v => v.status === 'alugado').length;
+            const ocupacao = total > 0 ? Math.round((alugados / total) * 100) : 0;
+            const hoje = new Date().toISOString().split('T')[0];
+            historicoDiario[hoje] = ocupacao;
+            localStorage.setItem('historicoDiario', JSON.stringify(historicoDiario));
+            const ontem = new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0];
+            ocupacaoOntem = historicoDiario[ontem] || null;
+            if (veiculos.length > 0) atualizarComparacao(ocupacao);
+        }
+
+        // ===== CELEBRAÇÕES =====
+        function detectarMudancasStatus(novosVeiculos) {
+            novosVeiculos.forEach(v => {
+                const chave = v.prefixo || v.placa;
+                const statusAtual = v.status;
+                const statusAnt = statusAnterior[chave];
+                if (statusAnt && statusAnt !== statusAtual) {
+                    if (['manutencao','mecanica','funilaria','eletrica'].includes(statusAnt) && statusAtual === 'disponivel') celebrarConfete();
+                    else if (statusAnt === 'disponivel' && statusAtual === 'alugado') celebrarFogos();
+                }
+                statusAnterior[chave] = statusAtual;
+            });
+            localStorage.setItem('statusAnteriorVeiculos', JSON.stringify(statusAnterior));
+        }
+
+        function celebrarConfete() {
+            const container = document.createElement('div');
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+            document.body.appendChild(container);
+            for (let i = 0; i < 100; i++) {
+                setTimeout(() => {
+                    const c = document.createElement('div');
+                    c.textContent = ['🎉','🎊','⭐','🎆','✨'][Math.floor(Math.random() * 5)];
+                    c.style.cssText = `position:absolute;left:${Math.random()*100}%;top:-50px;font-size:${Math.random()*30+20}px;animation:confeteFall ${Math.random()*2+2}s linear forwards;`;
+                    container.appendChild(c);
+                }, i * 20);
+            }
+            tocarSom('confete');
+            setTimeout(() => { document.body.removeChild(container); }, 5000);
+        }
+
+        function celebrarFogos() {
+            const container = document.createElement('div');
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+            document.body.appendChild(container);
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const cores = ['#ff6b6b','#ffd93d','#6bcf7f','#4ecdc4','#a29bfe','#ff8c42'];
+                    const cor = cores[Math.floor(Math.random() * cores.length)];
+                    const x = Math.random()*80+10, y = Math.random()*50+10;
+                    for (let j = 0; j < 30; j++) {
+                        const p = document.createElement('div');
+                        const angulo = (Math.PI * 2 * j) / 30;
+                        const vel = Math.random() * 100 + 50;
+                        p.style.cssText = `position:absolute;left:${x}%;top:${y}%;width:8px;height:8px;background:${cor};border-radius:50%;box-shadow:0 0 10px ${cor};animation:fogosParticula 1.5s ease-out forwards;--dx:${Math.cos(angulo)*vel}px;--dy:${Math.sin(angulo)*vel}px;`;
+                        container.appendChild(p);
+                    }
+                }, i * 400);
+            }
+            tocarSom('fogos');
+            setTimeout(() => { document.body.removeChild(container); }, 4000);
+        }
+
+        // ===== SOM =====
+        function tocarSomAtualizacao() {
+            try {
+                const ac = new (window.AudioContext || window.webkitAudioContext)();
+                const notas = [
+                    {freq:523.25,tempo:0.0,dur:0.3},{freq:659.25,tempo:0.3,dur:0.3},{freq:783.99,tempo:0.6,dur:0.6},
+                    {freq:523.25,tempo:2.0,dur:0.3},{freq:659.25,tempo:2.3,dur:0.3},{freq:783.99,tempo:2.6,dur:0.6},
+                    {freq:523.25,tempo:4.0,dur:0.3},{freq:659.25,tempo:4.3,dur:0.3},{freq:783.99,tempo:4.6,dur:0.6},
+                    {freq:523.25,tempo:6.0,dur:0.3},{freq:659.25,tempo:6.3,dur:0.3},{freq:783.99,tempo:6.6,dur:0.6},
+                    {freq:523.25,tempo:8.0,dur:0.3},{freq:659.25,tempo:8.3,dur:0.3},{freq:783.99,tempo:8.6,dur:1.4}
+                ];
+                notas.forEach(n => {
+                    const osc = ac.createOscillator();
+                    const gain = ac.createGain();
+                    osc.connect(gain); gain.connect(ac.destination);
+                    osc.frequency.value = n.freq; osc.type = 'sine';
+                    const s = ac.currentTime + n.tempo;
+                    gain.gain.setValueAtTime(0, s);
+                    gain.gain.linearRampToValueAtTime(0.15, s + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, s + n.dur);
+                    osc.start(s); osc.stop(s + n.dur);
+                });
+            } catch(e) {}
+        }
+
+        function tocarSom(tipo) {
+            try {
+                const ac = new (window.AudioContext || window.webkitAudioContext)();
+                if (tipo === 'confete') {
+                    [261.63,329.63,392.00,523.25].forEach((freq, i) => {
+                        setTimeout(() => {
+                            const osc = ac.createOscillator(); const gain = ac.createGain();
+                            osc.connect(gain); gain.connect(ac.destination);
+                            osc.frequency.value = freq; osc.type = 'sine';
+                            gain.gain.setValueAtTime(0.3, ac.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.3);
+                            osc.start(ac.currentTime); osc.stop(ac.currentTime + 0.3);
+                        }, i * 100);
+                    });
+                } else if (tipo === 'fogos') {
+                    for (let i = 0; i < 8; i++) {
+                        setTimeout(() => {
+                            const osc = ac.createOscillator(); const gain = ac.createGain();
+                            osc.connect(gain); gain.connect(ac.destination);
+                            osc.frequency.value = Math.random() * 200 + 100; osc.type = 'sawtooth';
+                            gain.gain.setValueAtTime(0.2, ac.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.4);
+                            osc.start(ac.currentTime); osc.stop(ac.currentTime + 0.4);
+                        }, i * 400);
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // ===== FULLSCREEN =====
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        window.onload = function() {
+            atualizarDataHora();
+            
+            const statusSalvo = localStorage.getItem('statusAnteriorVeiculos');
+            if (statusSalvo) statusAnterior = JSON.parse(statusSalvo);
+            
+            const savedHistoricoDiario = localStorage.getItem('historicoDiario');
+            if (savedHistoricoDiario) historicoDiario = JSON.parse(savedHistoricoDiario);
+            const ontem = new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0];
+            if (historicoDiario[ontem]) ocupacaoOntem = historicoDiario[ontem];
+
+            // Buscar dados imediatamente
+            buscarDadosFrota();
+            atualizarMotoristas();
+
+            // Timers
+            setInterval(atualizarDataHora, 60000);
+            setInterval(buscarDadosFrota, INTERVALO_ATUALIZACAO);
+            setInterval(atualizarMotoristas, 2 * 60 * 1000); // Motoristas a cada 2 min
+            setInterval(updateTelaTimer, 1000);
+        };
+    </script>
+    <script>
+      // ===== Opção A: Temperatura local + Tempo de rotação configurável =====
+      (function(){
+        // CONFIG: coordenadas da cidade (padrão: São Paulo). Ajuste se necessário.
+        var LAT = -23.5505, LON = -46.6333, CIDADE = 'São Paulo';
+
+        function iconeTempo(code){
+          if (code === 0) return '☀️';
+          if (code <= 2) return '🌤️';
+          if (code === 3) return '☁️';
+          if (code >= 45 && code <= 48) return '🌫️';
+          if (code >= 51 && code <= 67) return '🌧️';
+          if (code >= 71 && code <= 77) return '🌨️';
+          if (code >= 80 && code <= 82) return '🌧️';
+          if (code >= 95) return '⛈️';
+          return '🌡️';
+        }
+        async function buscarClima(){
+          try {
+            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m,weather_code&timezone=auto';
+            var r = await fetch(url);
+            var d = await r.json();
+            var t = Math.round(d.current.temperature_2m);
+            var txt = iconeTempo(d.current.weather_code) + ' ' + t + '°C · ' + CIDADE;
+            var w1 = document.getElementById('weather1'); if (w1) w1.textContent = txt;
+            var w2 = document.getElementById('weather2'); if (w2) w2.textContent = txt;
+          } catch(e) { /* silencioso */ }
+        }
+        buscarClima();
+        setInterval(buscarClima, 15 * 60 * 1000); // a cada 15 min
+
+        // ===== Tempo de rotação configurável (em segundos) =====
+        try {
+          var s = JSON.parse(localStorage.getItem('rotacaoDuracoes') || '{}');
+          if (s.t1) TELA1_DURACAO = s.t1;
+          if (s.t2) TELA2_DURACAO = s.t2;
+          if (typeof telaTimer !== 'undefined') telaTimer = (typeof telaAtual !== 'undefined' && telaAtual === 2) ? TELA2_DURACAO : TELA1_DURACAO;
+        } catch(e){}
+
+        var btn = document.getElementById('settingsBtn');
+        var panel = document.getElementById('settingsPanel');
+        var inp1 = document.getElementById('inpTela1');
+        var inp2 = document.getElementById('inpTela2');
+        function abrir(){ inp1.value = TELA1_DURACAO; inp2.value = TELA2_DURACAO; panel.classList.add('aberto'); }
+        function fechar(){ panel.classList.remove('aberto'); }
+        if (btn) btn.addEventListener('click', function(){ panel.classList.contains('aberto') ? fechar() : abrir(); });
+        document.getElementById('settingsFechar').addEventListener('click', fechar);
+        document.getElementById('settingsSalvar').addEventListener('click', function(){
+          var t1 = Math.max(5, Math.min(600, parseInt(inp1.value) || TELA1_DURACAO));
+          var t2 = Math.max(5, Math.min(600, parseInt(inp2.value) || TELA2_DURACAO));
+          TELA1_DURACAO = t1; TELA2_DURACAO = t2;
+          if (typeof telaTimer !== 'undefined') telaTimer = (typeof telaAtual !== 'undefined' && telaAtual === 2) ? t2 : t1;
+          localStorage.setItem('rotacaoDuracoes', JSON.stringify({ t1: t1, t2: t2 }));
+          fechar();
+        });
+      })();
+    </script>
+    <script>
+      // ===== Opção A: saudação por turno + barra de meta de ocupação =====
+      (function(){
+        function atualizarSaudacao(){
+          var h = new Date().getHours();
+          var s = h >= 5 && h < 12 ? '☀️ Bom dia!' : (h >= 12 && h < 18 ? '🌤️ Boa tarde!' : '🌙 Boa noite!');
+          var s1 = document.getElementById('saudacao1'); if (s1) s1.textContent = s;
+          var s2 = document.getElementById('saudacao2'); if (s2) s2.textContent = s;
+        }
+        atualizarSaudacao();
+        setInterval(atualizarSaudacao, 60000);
+
+        function atualizarMetaBar(){
+          var fill = document.getElementById('metaFill');
+          if (!fill || typeof veiculos === 'undefined' || !veiculos.length) return;
+          var total = veiculos.length;
+          var alugados = veiculos.filter(function(v){ return v.status === 'alugado'; }).length;
+          var ocup = total > 0 ? Math.round((alugados / total) * 100) : 0;
+          var meta = (typeof META_OCUPACAO !== 'undefined') ? META_OCUPACAO : 95;
+          fill.style.width = Math.min(100, ocup) + '%';
+          fill.style.background = ocup >= meta ? '#06d6a0' : (ocup >= meta - 10 ? '#ffd166' : '#ef476f');
+        }
+        if (typeof atualizarDashboard === 'function') {
+          var _orig = atualizarDashboard;
+          atualizarDashboard = function(){ _orig.apply(this, arguments); try { atualizarMetaBar(); } catch(e){} };
+        }
+        setInterval(function(){ try { atualizarMetaBar(); } catch(e){} }, 5000);
+      })();
+    </script>
+</body>
+</html>
