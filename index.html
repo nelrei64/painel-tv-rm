@@ -682,7 +682,11 @@
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 const dados = await response.json();
 
-                const novosVeiculos = dados.veiculos || [];
+                // Normaliza o status (minúsculo, sem acento) para o painel não
+                // "perder" carros por acento/maiúscula digitados na planilha
+                // (ex.: "Disponível" x "disponivel").
+                const normStatus = s => String(s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
+                const novosVeiculos = (dados.veiculos || []).map(v => ({ ...v, status: normStatus(v.status) }));
                 if (novosVeiculos.length > 0) {
                     detectarMudancasStatus(novosVeiculos);
                     veiculos = novosVeiculos;
