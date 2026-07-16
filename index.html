@@ -248,6 +248,7 @@
         .status-venda { background: #f72585; color: #fff; }
         .status-reservado { background: #4cc9f0; color: #000; }
         .vehicle-date-info { font-size: 0.6em; margin-top: 3px; opacity: 0.75; color: #ffd166; }
+        .vehicle-oficina { font-size: 0.6em; margin-top: 2px; font-weight: 700; color: #0d4a2f; opacity: 0.95; }
         .manutencao-atrasada {
             border: 3px solid #ff4444 !important;
             animation: pulse-red 1.5s infinite;
@@ -776,7 +777,14 @@
                     
                     const atrasadoData = v.previsao_entrega ? parsearData(v.previsao_entrega) : null;
                     const atrasado = atrasadoData && atrasadoData < new Date() ? 'manutencao-atrasada' : '';
-                    
+
+                    // Oficina/onde o carro está (usa a coluna "Localização" que o
+                    // Apps Script já envia; aparece só quando preenchida na planilha)
+                    const localOficina = String(v.oficina || v.localizacao || '').trim();
+                    const oficinaHTML = localOficina
+                        ? `<div class="vehicle-oficina">📍 ${localOficina}</div>`
+                        : '';
+
                     return `
                         <div class="vehicle-item ${atrasado}">
                             <div class="vehicle-prefix">${v.prefixo}</div>
@@ -784,6 +792,7 @@
                             <div class="vehicle-plate">${v.placa}</div>
                             <span class="vehicle-status ${sc}">${st}</span>
                             ${previsaoHTML}
+                            ${oficinaHTML}
                         </div>`;
                 }).join('');
             }
