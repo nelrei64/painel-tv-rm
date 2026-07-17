@@ -742,7 +742,12 @@
                     if (v.tipo_motorista === 'novo') tipoBadge = `<span style="margin-top:3px;display:inline-block;background:linear-gradient(135deg,#06d6a0,#05a377);color:#000;padding:2px 7px;border-radius:8px;font-size:0.58em;font-weight:700;">🆕 Novo Mot.</span>`;
                     else if (v.tipo_motorista === 'troca') tipoBadge = `<span style="margin-top:3px;display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:2px 7px;border-radius:8px;font-size:0.58em;font-weight:700;">🔄 Troca</span>`;
                     else if (v.tipo_motorista === 'ativo') tipoBadge = `<span style="margin-top:3px;display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;padding:2px 7px;border-radius:8px;font-size:0.58em;font-weight:700;">✅ Mot. Ativo</span>`;
-                    
+
+                    // Onde o carro está estacionado (Garagem/Estacionamento) — só quando preenchido
+                    const localHTML = String(v.localizacao || '').trim()
+                        ? `<div class="vehicle-oficina">📍 ${v.localizacao}</div>`
+                        : '';
+
                     return `
                         <div class="vehicle-item">
                             <div class="vehicle-prefix">${v.prefixo}</div>
@@ -750,6 +755,7 @@
                             <div class="vehicle-plate">${v.placa}</div>
                             <span class="vehicle-status status-disponivel">Disponível</span>
                             ${tipoBadge}
+                            ${localHTML}
                         </div>`;
                 }).join('');
             }
