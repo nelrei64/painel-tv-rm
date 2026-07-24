@@ -524,7 +524,7 @@
                         <div class="label">Disponíveis</div>
                         <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
                             <div class="value" id="disponiveis">0</div>
-                            <div id="disponiveisModelos" style="font-size:1.9em; font-weight:800; color:#04241b; line-height:1.15;">Prontos para alugar</div>
+                            <div id="disponiveisModelos" style="font-size:1.5em; font-weight:800; color:#04241b; line-height:1.3;">Prontos para alugar</div>
                         </div>
                     </div>
                 </div>
@@ -722,17 +722,18 @@
             document.getElementById('metaOcupacao').textContent = `Meta: ${META_OCUPACAO}%`;
             document.getElementById('disponiveis').textContent = disponiveis;
 
-            // Modelos dos carros disponíveis (ex.: "2 Onix · 1 Logan") no subtítulo do card
+            // Modelos dos carros disponíveis, lista vertical ao lado do número (só o 1º nome)
             const modelosCount = {};
             veiculos.filter(v => v.status === 'disponivel').forEach(v => {
-                const m = String(v.modelo || '').trim() || '—';
+                let m = String(v.modelo || '').trim().split(/\s+/)[0] || '—';
+                m = m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
                 modelosCount[m] = (modelosCount[m] || 0) + 1;
             });
             const ordenados = Object.entries(modelosCount).sort((a, b) => b[1] - a[1]);
-            let modelosStr = ordenados.slice(0, 5).map(([m, n]) => `${n} ${m}`).join(' · ');
-            if (ordenados.length > 5) modelosStr += ' …';
+            const linhas = ordenados.slice(0, 6).map(([m, n]) => `${n} ${m}`);
+            if (ordenados.length > 6) linhas.push('…');
             const dispModelosEl = document.getElementById('disponiveisModelos');
-            if (dispModelosEl) dispModelosEl.textContent = disponiveis > 0 ? modelosStr : 'Nenhum disponível';
+            if (dispModelosEl) dispModelosEl.innerHTML = disponiveis > 0 ? linhas.join('<br>') : 'Nenhum disponível';
 
             document.getElementById('alugados').textContent = alugados;
             document.getElementById('manutencao').textContent = manutencao;
