@@ -523,7 +523,7 @@
                     <div class="content">
                         <div class="label">Disponíveis</div>
                         <div class="value" id="disponiveis">0</div>
-                        <div class="subtitle">Prontos para alugar</div>
+                        <div class="subtitle" id="disponiveisModelos">Prontos para alugar</div>
                     </div>
                 </div>
                 <div class="kpi-card kpi-alugados">
@@ -719,6 +719,19 @@
             document.getElementById('ocupacao').textContent = `${ocupacao}%`;
             document.getElementById('metaOcupacao').textContent = `Meta: ${META_OCUPACAO}%`;
             document.getElementById('disponiveis').textContent = disponiveis;
+
+            // Modelos dos carros disponíveis (ex.: "2 Onix · 1 Logan") no subtítulo do card
+            const modelosCount = {};
+            veiculos.filter(v => v.status === 'disponivel').forEach(v => {
+                const m = String(v.modelo || '').trim() || '—';
+                modelosCount[m] = (modelosCount[m] || 0) + 1;
+            });
+            const ordenados = Object.entries(modelosCount).sort((a, b) => b[1] - a[1]);
+            let modelosStr = ordenados.slice(0, 5).map(([m, n]) => `${n} ${m}`).join(' · ');
+            if (ordenados.length > 5) modelosStr += ' …';
+            const dispModelosEl = document.getElementById('disponiveisModelos');
+            if (dispModelosEl) dispModelosEl.textContent = disponiveis > 0 ? modelosStr : 'Nenhum disponível';
+
             document.getElementById('alugados').textContent = alugados;
             document.getElementById('manutencao').textContent = manutencao;
             document.getElementById('countDisponiveis').textContent = disponiveis;
