@@ -498,6 +498,7 @@
                 <div class="screen-indicator">
                     <div class="screen-dot ativo" id="dot1"></div>
                     <div class="screen-dot" id="dot2"></div>
+                    <div class="screen-dot" id="dot3"></div>
                     <span id="telaLabel" style="font-size:0.85em;">Frota</span>
                 </div>
                 <div class="screen-timer-bar">
@@ -559,12 +560,6 @@
                         <div style="opacity:0.6;text-align:center;padding:30px;">Carregando...</div>
                     </div>
                 </div>
-                <div class="parada-section">
-                    <h3>⏸️ Parada Programada / Previsões</h3>
-                    <div class="parada-lista" id="paradaLista">
-                        <div style="opacity:0.5;text-align:center;padding:15px;font-size:0.85em;">Carregando...</div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -588,6 +583,7 @@
                 <div class="screen-indicator">
                     <div class="screen-dot" id="dot1b"></div>
                     <div class="screen-dot ativo" id="dot2b"></div>
+                    <div class="screen-dot" id="dot3b"></div>
                     <span style="font-size:0.85em;">Motoristas</span>
                 </div>
                 <div class="screen-timer-bar">
@@ -617,6 +613,52 @@
         </div>
     </div>
 
+    <!-- ===== TELA 3: PREVISÃO DE ENTREGAS ===== -->
+    <div class="tela" id="tela3">
+        <div class="header">
+            <div class="header-left">
+                <div class="weather" id="weather3">🌡️ --°C</div>
+            </div>
+            <div class="header-center">
+                <div class="saudacao" id="saudacao3">Olá! 👋</div>
+                <h1>🚖 RM/MOVER</h1>
+                <div class="datetime" id="datetime3"></div>
+                <div class="last-update">Previsão de Entregas</div>
+            </div>
+            <div class="header-right">
+                <div class="screen-indicator">
+                    <div class="screen-dot" id="dot1c"></div>
+                    <div class="screen-dot" id="dot2c"></div>
+                    <div class="screen-dot ativo" id="dot3c"></div>
+                    <span style="font-size:0.85em;">Entregas</span>
+                </div>
+                <div class="screen-timer-bar">
+                    <div class="screen-timer-fill" id="timerFill3" style="width:100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="motoristas-stats">
+            <div class="stat-pill">🔧 Prontos na oficina (≤5 dias): <span id="countEntregaOficina">0</span></div>
+            <div class="stat-pill">🚙 A receber dos motoristas: <span id="countEntregaMotorista">0</span></div>
+        </div>
+
+        <div class="motoristas-body">
+            <div class="motoristas-section disponiveis">
+                <h2>🔧 Prontos na Oficina (em até 5 dias)</h2>
+                <div class="vehicle-list" id="entregaOficinaLista">
+                    <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
+                </div>
+            </div>
+            <div class="motoristas-section carros">
+                <h2>🚙 A Receber dos Motoristas</h2>
+                <div class="vehicle-list" id="entregaMotoristaLista">
+                    <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Botão tela cheia -->
     <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Tela Cheia">⛶</button>
     <button class="settings-btn" id="settingsBtn" title="Configurar tempo das telas">⚙️</button>
@@ -627,6 +669,9 @@
         </label>
         <label>Tela Motoristas (segundos)
             <input type="number" id="inpTela2" min="5" max="600" step="5">
+        </label>
+        <label>Tela Entregas (segundos)
+            <input type="number" id="inpTela3" min="5" max="600" step="5">
         </label>
         <div class="settings-actions">
             <button id="settingsSalvar">Salvar</button>
@@ -653,6 +698,9 @@
         let telaAtual = 1;
         let TELA1_DURACAO = 120;
         let TELA2_DURACAO = 120;
+        let TELA3_DURACAO = 60;
+        const TOTAL_TELAS = 3;
+        function duracaoTela(n) { return n === 1 ? TELA1_DURACAO : n === 2 ? TELA2_DURACAO : TELA3_DURACAO; }
         let telaTimer = TELA1_DURACAO;
 
         // ===== DATA/HORA =====
@@ -662,6 +710,7 @@
             const texto = agora.toLocaleDateString('pt-BR', opcoes);
             document.getElementById('datetime1').textContent = texto;
             document.getElementById('datetime2').textContent = texto;
+            var dt3 = document.getElementById('datetime3'); if (dt3) dt3.textContent = texto;
         }
 
         // ===== PARSEAR DATA (suporta vários formatos) =====
@@ -824,42 +873,77 @@
                 }).join('');
             }
 
-            // ===== PARADA PROGRAMADA =====
-            const paradaLista = document.getElementById('paradaLista');
-            // Mostrar TODOS os veículos que têm data_programada preenchida
-            const veiculosComPrevisao = veiculos.filter(v => 
-                v.data_programada && v.data_programada !== ''
-            );
-            
-            if (veiculosComPrevisao.length === 0) {
-                paradaLista.innerHTML = '<div style="opacity:0.5;text-align:center;padding:15px;font-size:0.85em;">Nenhuma parada programada</div>';
-            } else {
-                paradaLista.innerHTML = veiculosComPrevisao.map(v => {
-                    const dataP = parsearData(v.data_programada);
-                    const hoje = new Date(); hoje.setHours(0,0,0,0);
-                    const vencida = dataP && dataP < hoje;
-                    const dataFmt = dataP ? dataP.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'}) : v.data_programada;
-                    const classeAtrasada = vencida ? 'atrasada' : '';
-                    
-                    // Badge de status do veículo
-                    const statusLabel = v.status === 'alugado' ? '🚗 Alugado' : 
-                                       v.status === 'disponivel' ? '✅ Disponível' :
-                                       v.status === 'manutencao' ? '🔧 Manutenção' :
-                                       v.status === 'mecanica' ? '🔧 Mecânica' :
-                                       v.status === 'funilaria' ? '🔧 Funilaria' :
-                                       v.status === 'eletrica' ? '🔧 Elétrica' : v.status;
-                    
-                    return `
-                        <div class="parada-item ${classeAtrasada}">
-                            <div class="prefixo">${v.prefixo} - ${v.placa} (${v.modelo})</div>
-                            <div class="info">${statusLabel}</div>
-                            <div class="data">${vencida ? '⚠️ ATRASADO' : '📅'} Parada: ${dataFmt}</div>
-                        </div>`;
-                }).join('');
-            }
-
             ajustarTamanhoCards();
             renderizarCarrosDisp();
+            if (telaAtual === 3) renderizarEntregas();
+        }
+
+        // ===== TELA 3: PREVISÃO DE ENTREGAS =====
+        // Texto amigável de contagem de dias
+        function textoDias(dias) {
+            if (dias < 0) return { txt: '⚠️ ATRASADO', cor: '#ff4444' };
+            if (dias === 0) return { txt: '🔴 HOJE', cor: '#ff4444' };
+            if (dias === 1) return { txt: 'amanhã', cor: '#06d6a0' };
+            return { txt: 'em ' + dias + ' dias', cor: '#06d6a0' };
+        }
+        function diasAte(dataStr) {
+            const d = parsearData(dataStr);
+            if (!d) return null;
+            const hoje = new Date(); hoje.setHours(0,0,0,0);
+            d.setHours(0,0,0,0);
+            return Math.round((d - hoje) / 86400000);
+        }
+        // Renderiza uma coluna de entregas (com auto-encolher e "+N outros")
+        function renderColunaEntrega(elId, itens, vazioMsg, MAX) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            if (itens.length === 0) {
+                el.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">' + vazioMsg + '</div>';
+                el.classList.remove('size-medium','size-small','size-tiny');
+                return;
+            }
+            const mostrar = itens.slice(0, MAX);
+            const resto = itens.length - mostrar.length;
+            el.innerHTML = mostrar.map(it => {
+                const info = textoDias(it.dias);
+                return `
+                    <div class="vehicle-item">
+                        <div class="vehicle-prefix">${it.prefixo}</div>
+                        <div class="vehicle-model">${it.modelo}</div>
+                        ${it.sub ? `<div class="vehicle-oficina">${it.sub}</div>` : ''}
+                        <div class="vehicle-date-info" style="color:${info.cor};font-weight:800;">⏳ ${info.txt}</div>
+                        <div class="vehicle-date-info" style="opacity:0.7;">📅 ${it.dataFmt}</div>
+                    </div>`;
+            }).join('') + (resto > 0 ? `<div style="grid-column:1/-1;text-align:center;opacity:0.7;font-size:0.9em;padding:8px;">+ ${resto} outro(s)…</div>` : '');
+            // auto-encolher pela quantidade
+            const n = mostrar.length;
+            el.classList.remove('size-medium','size-small','size-tiny');
+            if (n > 6) el.classList.add('size-tiny');
+            else if (n > 4) el.classList.add('size-small');
+            else if (n > 3) el.classList.add('size-medium');
+        }
+        function renderizarEntregas() {
+            const emManutencao = s => ['manutencao','mecanica','funilaria','eletrica'].includes(s);
+            const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
+            // Oficina: previsão de entrega em até 5 dias (inclui atrasados/hoje)
+            const oficina = veiculos
+                .filter(v => (v.nova_previsao || v.previsao_entrega))
+                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { v, dias: diasAte(src), dataFmt: fmt(src), src }; })
+                .filter(o => o.dias !== null && o.dias <= 5)
+                .sort((a,b) => a.dias - b.dias)
+                .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: (o.v.oficina || o.v.localizacao) ? '📍 ' + (o.v.oficina || o.v.localizacao) : '', dias: o.dias, dataFmt: o.dataFmt }));
+            // Motoristas: parada programada (qualquer data)
+            const motorista = veiculos
+                .filter(v => v.data_programada && v.data_programada !== '')
+                .map(v => ({ v, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada) }))
+                .filter(o => o.dias !== null)
+                .sort((a,b) => a.dias - b.dias)
+                .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: o.v.placa || '', dias: o.dias, dataFmt: o.dataFmt }));
+
+            document.getElementById('countEntregaOficina').textContent = oficina.length;
+            document.getElementById('countEntregaMotorista').textContent = motorista.length;
+            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro pronto nos próximos 5 dias 🎉', 9);
+            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 9);
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
@@ -990,41 +1074,39 @@
         }
 
         // ===== ROTAÇÃO DE TELAS =====
-        function trocarTela() {
-            const tela1 = document.getElementById('tela1');
-            const tela2 = document.getElementById('tela2');
-            if (telaAtual === 1) {
-                tela1.classList.remove('ativa');
-                tela2.classList.add('ativa');
-                tela2.classList.add('tela-2-enter');
-                setTimeout(() => tela2.classList.remove('tela-2-enter'), 600);
-                document.getElementById('dot1').classList.remove('ativo');
-                document.getElementById('dot2').classList.add('ativo');
-                document.getElementById('dot1b').classList.remove('ativo');
-                document.getElementById('dot2b').classList.add('ativo');
-                telaAtual = 2;
-                telaTimer = TELA2_DURACAO;
-                renderizarCarrosDisp();
-            } else {
-                tela2.classList.remove('ativa');
-                tela1.classList.add('ativa');
-                tela1.classList.add('tela-1-enter');
-                setTimeout(() => tela1.classList.remove('tela-1-enter'), 600);
-                document.getElementById('dot1').classList.add('ativo');
-                document.getElementById('dot2').classList.remove('ativo');
-                document.getElementById('dot1b').classList.add('ativo');
-                document.getElementById('dot2b').classList.remove('ativo');
-                telaAtual = 1;
-                telaTimer = TELA1_DURACAO;
+        // Marca o "dot" ativo em todos os indicadores (cada tela tem seus 3 dots)
+        function atualizarDots(n) {
+            document.querySelectorAll('.screen-indicator').forEach(ind => {
+                ind.querySelectorAll('.screen-dot').forEach((d, i) => d.classList.toggle('ativo', i === n - 1));
+            });
+        }
+
+        function mostrarTela(n) {
+            for (let i = 1; i <= TOTAL_TELAS; i++) {
+                const t = document.getElementById('tela' + i);
+                if (t) t.classList.toggle('ativa', i === n);
             }
+            const t = document.getElementById('tela' + n);
+            if (t) {
+                const anim = n === 1 ? 'tela-1-enter' : 'tela-2-enter';
+                t.classList.add(anim);
+                setTimeout(() => t.classList.remove(anim), 600);
+            }
+            atualizarDots(n);
+            telaAtual = n;
+            telaTimer = duracaoTela(n);
+            if (n === 2) renderizarCarrosDisp();
+            if (n === 3) renderizarEntregas();
+        }
+
+        function trocarTela() {
+            mostrarTela(telaAtual >= TOTAL_TELAS ? 1 : telaAtual + 1);
         }
 
         function updateTelaTimer() {
             telaTimer--;
-            const duracao = telaAtual === 1 ? TELA1_DURACAO : TELA2_DURACAO;
-            const pct = (telaTimer / duracao) * 100;
-            document.getElementById('timerFill1').style.width = pct + '%';
-            document.getElementById('timerFill2').style.width = pct + '%';
+            const pct = (telaTimer / duracaoTela(telaAtual)) * 100;
+            document.querySelectorAll('.screen-timer-fill').forEach(f => f.style.width = pct + '%');
             if (telaTimer <= 0) trocarTela();
         }
 
@@ -1215,6 +1297,7 @@
             var txt = iconeTempo(d.current.weather_code) + ' ' + t + '°C · ' + CIDADE;
             var w1 = document.getElementById('weather1'); if (w1) w1.textContent = txt;
             var w2 = document.getElementById('weather2'); if (w2) w2.textContent = txt;
+            var w3 = document.getElementById('weather3'); if (w3) w3.textContent = txt;
           } catch(e) { /* silencioso */ }
         }
         buscarClima();
@@ -1225,23 +1308,26 @@
           var s = JSON.parse(localStorage.getItem('rotacaoDuracoes') || '{}');
           if (s.t1) TELA1_DURACAO = s.t1;
           if (s.t2) TELA2_DURACAO = s.t2;
-          if (typeof telaTimer !== 'undefined') telaTimer = (typeof telaAtual !== 'undefined' && telaAtual === 2) ? TELA2_DURACAO : TELA1_DURACAO;
+          if (s.t3) TELA3_DURACAO = s.t3;
+          if (typeof telaTimer !== 'undefined') telaTimer = duracaoTela(typeof telaAtual !== 'undefined' ? telaAtual : 1);
         } catch(e){}
 
         var btn = document.getElementById('settingsBtn');
         var panel = document.getElementById('settingsPanel');
         var inp1 = document.getElementById('inpTela1');
         var inp2 = document.getElementById('inpTela2');
-        function abrir(){ inp1.value = TELA1_DURACAO; inp2.value = TELA2_DURACAO; panel.classList.add('aberto'); }
+        var inp3 = document.getElementById('inpTela3');
+        function abrir(){ inp1.value = TELA1_DURACAO; inp2.value = TELA2_DURACAO; if (inp3) inp3.value = TELA3_DURACAO; panel.classList.add('aberto'); }
         function fechar(){ panel.classList.remove('aberto'); }
         if (btn) btn.addEventListener('click', function(){ panel.classList.contains('aberto') ? fechar() : abrir(); });
         document.getElementById('settingsFechar').addEventListener('click', fechar);
         document.getElementById('settingsSalvar').addEventListener('click', function(){
           var t1 = Math.max(5, Math.min(600, parseInt(inp1.value) || TELA1_DURACAO));
           var t2 = Math.max(5, Math.min(600, parseInt(inp2.value) || TELA2_DURACAO));
-          TELA1_DURACAO = t1; TELA2_DURACAO = t2;
-          if (typeof telaTimer !== 'undefined') telaTimer = (typeof telaAtual !== 'undefined' && telaAtual === 2) ? t2 : t1;
-          localStorage.setItem('rotacaoDuracoes', JSON.stringify({ t1: t1, t2: t2 }));
+          var t3 = Math.max(5, Math.min(600, parseInt(inp3 && inp3.value) || TELA3_DURACAO));
+          TELA1_DURACAO = t1; TELA2_DURACAO = t2; TELA3_DURACAO = t3;
+          if (typeof telaTimer !== 'undefined') telaTimer = duracaoTela(typeof telaAtual !== 'undefined' ? telaAtual : 1);
+          localStorage.setItem('rotacaoDuracoes', JSON.stringify({ t1: t1, t2: t2, t3: t3 }));
           fechar();
         });
       })();
@@ -1254,6 +1340,7 @@
           var s = h >= 5 && h < 12 ? '☀️ Bom dia!' : (h >= 12 && h < 18 ? '🌤️ Boa tarde!' : '🌙 Boa noite!');
           var s1 = document.getElementById('saudacao1'); if (s1) s1.textContent = s;
           var s2 = document.getElementById('saudacao2'); if (s2) s2.textContent = s;
+          var s3 = document.getElementById('saudacao3'); if (s3) s3.textContent = s;
         }
         atualizarSaudacao();
         setInterval(atualizarSaudacao, 60000);
