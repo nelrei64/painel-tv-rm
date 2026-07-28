@@ -674,7 +674,7 @@
 
         <div class="motoristas-body">
             <div class="motoristas-section disponiveis">
-                <h2>🔧 Prontos na Oficina · <span id="countEntregaOficina">0</span></h2>
+                <h2>🔧 Vão ficar prontos na oficina · <span id="countEntregaOficina">0</span></h2>
                 <div class="entrega-lista" id="entregaOficinaLista">
                     <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
                 </div>
@@ -954,13 +954,14 @@
         }
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
-            // Oficina: só a partir de 5 dias (calendário de captação — dá tempo de captar motorista)
+            const naOficina = s => ['manutencao','mecanica','funilaria','eletrica'].includes(s);
+            // Oficina: carro EM MANUTENÇÃO com previsão de ficar pronto a partir de 5 dias
             const oficina = veiculos
-                .filter(v => (v.nova_previsao || v.previsao_entrega))
+                .filter(v => naOficina(v.status) && (v.nova_previsao || v.previsao_entrega))
                 .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { v, dias: diasAte(src), dataFmt: fmt(src) }; })
                 .filter(o => o.dias !== null && o.dias >= 5)
                 .sort((a,b) => a.dias - b.dias)
-                .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: (o.v.oficina || o.v.localizacao) ? '📍 ' + (o.v.oficina || o.v.localizacao) : '', dias: o.dias, dataFmt: o.dataFmt }));
+                .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: '🔧 na oficina' + ((o.v.oficina || o.v.localizacao) ? ' (' + (o.v.oficina || o.v.localizacao) + ')' : ''), dias: o.dias, dataFmt: o.dataFmt }));
             // Motoristas: parada programada (qualquer data)
             const motorista = veiculos
                 .filter(v => v.data_programada && v.data_programada !== '')
