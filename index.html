@@ -960,11 +960,11 @@
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
             const naOficina = s => ['manutencao','mecanica','funilaria','eletrica'].includes(s);
-            // Oficina: carro EM MANUTENÇÃO com previsão de ficar pronto a partir de 5 dias
+            // Oficina: TODO carro EM MANUTENÇÃO com previsão de entrega (do mais próximo p/ o mais distante)
             const oficina = veiculos
                 .filter(v => naOficina(v.status) && (v.nova_previsao || v.previsao_entrega))
                 .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { v, dias: diasAte(src), dataFmt: fmt(src) }; })
-                .filter(o => o.dias !== null && o.dias >= 5)
+                .filter(o => o.dias !== null)
                 .sort((a,b) => a.dias - b.dias)
                 .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: '🔧 na oficina' + ((o.v.oficina || o.v.localizacao) ? ' (' + (o.v.oficina || o.v.localizacao) + ')' : ''), dias: o.dias, dataFmt: o.dataFmt }));
             // Motoristas: parada programada (qualquer data)
@@ -977,8 +977,8 @@
 
             document.getElementById('countEntregaOficina').textContent = oficina.length;
             document.getElementById('countEntregaMotorista').textContent = motorista.length;
-            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro previsto a partir de 5 dias', 6, 'oficina');
-            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 6, '');
+            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro com previsão na oficina', 8, 'oficina');
+            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 8, '');
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
