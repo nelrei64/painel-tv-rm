@@ -416,6 +416,19 @@
         }
 
         /* Botões flutuantes */
+        .nav-control {
+            position: fixed; top: 12px; right: 12px; z-index: 1200;
+            display: flex; gap: 6px; background: rgba(0,0,0,0.30);
+            padding: 6px; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+        }
+        .nav-control button {
+            border: none; border-radius: 9px; padding: 8px 14px;
+            font-size: 0.95em; font-weight: 800; cursor: pointer;
+            background: rgba(255,255,255,0.88); color: #16243d; transition: all 0.15s;
+        }
+        .nav-control button:hover { background: #fff; }
+        .nav-control button.ativo { background: #06d6a0; color: #04241b; }
+        .nav-control button.pausa-on { background: #C9A227; color: #2a1f00; }
         .fullscreen-btn {
             position: fixed; bottom: 16px; right: 12px;
             background: rgba(102,126,234,0.75); border: none;
@@ -688,9 +701,17 @@
         </div>
     </div>
 
+    <!-- Botões de navegação entre telas (canto superior direito) -->
+    <div class="nav-control">
+        <button id="nav1" class="ativo" onclick="irParaTela(1)">Frota</button>
+        <button id="nav2" onclick="irParaTela(2)">Motoristas</button>
+        <button id="nav3" onclick="irParaTela(3)">Entregas</button>
+        <button id="navPausa" onclick="togglePausa()" title="Pausar / retomar o rodízio">⏸️</button>
+    </div>
+
     <!-- Aviso de rodízio pausado (modo teste) -->
     <div id="pausaAviso" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#C9A227;color:#2a1f00;font-weight:800;padding:8px 18px;border-radius:20px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);">
-        ⏸️ Rodízio pausado — teclas 1/2/3 trocam a tela · espaço retoma
+        ⏸️ Rodízio pausado — clique numa tela acima ou aperte espaço para retomar
     </div>
 
     <!-- Botão tela cheia -->
@@ -920,12 +941,12 @@
             d.setHours(0,0,0,0);
             return Math.round((d - hoje) / 86400000);
         }
-        // badge grande de dias (o número é o destaque do card)
+        // badge grande de dias (o número é o destaque do card). Atrasado = vermelho; no prazo = verde.
         function badgeDias(dias) {
-            if (dias < 0) return { num: '!', lbl: 'atrasado', urgente: true };
-            if (dias === 0) return { num: 'HOJE', lbl: 'pronto', urgente: true };
-            if (dias === 1) return { num: '1', lbl: 'dia', urgente: false };
-            return { num: String(dias), lbl: 'dias', urgente: false };
+            if (dias < 0) { const a = Math.abs(dias); return { num: String(a), lbl: (a === 1 ? 'dia atrasado' : 'dias atrasado'), atrasado: true }; }
+            if (dias === 0) return { num: 'HOJE', lbl: 'pronto', atrasado: false };
+            if (dias === 1) return { num: '1', lbl: 'dia', atrasado: false };
+            return { num: String(dias), lbl: 'dias', atrasado: false };
         }
         // Renderiza uma coluna de entregas com cards de captação (grande, com contador)
         function renderColunaEntrega(elId, itens, vazioMsg, MAX, classeCard) {
@@ -941,7 +962,7 @@
             el.classList.toggle('compacta', mostrar.length > 3);
             el.innerHTML = mostrar.map(it => {
                 const b = badgeDias(it.dias);
-                const cls = b.urgente ? 'urgente' : (classeCard || '');
+                const cls = b.atrasado ? 'urgente' : 'oficina'; // vermelho atrasado / verde no prazo
                 const numFonte = b.num.length > 2 ? 'font-size:1.8em;' : '';
                 return `
                     <div class="entrega-card ${cls}">
@@ -1128,6 +1149,7 @@
                 setTimeout(() => t.classList.remove(anim), 600);
             }
             atualizarDots(n);
+            ['nav1','nav2','nav3'].forEach((idb, i) => { const b = document.getElementById(idb); if (b) b.classList.toggle('ativo', i === n - 1); });
             telaAtual = n;
             telaTimer = duracaoTela(n);
             if (n === 2) renderizarCarrosDisp();
@@ -1156,6 +1178,8 @@
             rodizioPausado = !rodizioPausado;
             const av = document.getElementById('pausaAviso');
             if (av) av.style.display = rodizioPausado ? 'block' : 'none';
+            const pb = document.getElementById('navPausa');
+            if (pb) { pb.textContent = rodizioPausado ? '▶️' : '⏸️'; pb.classList.toggle('pausa-on', rodizioPausado); pb.title = rodizioPausado ? 'Retomar o rodízio' : 'Pausar o rodízio'; }
         }
         // Atalhos de teclado: 1/2/3 = escolher tela · seta ←/→ = anterior/próxima · espaço ou P = pausar/retomar
         document.addEventListener('keydown', (e) => {
