@@ -286,6 +286,38 @@
         }
         .motoristas-section.disponiveis h2 { color: #06d6a0; border-color: rgba(6,214,160,0.3); }
         .motoristas-section.carros h2 { color: #667eea; border-color: rgba(102,126,234,0.3); }
+
+        /* ===== TELA 3: PREVISÃO DE ENTREGAS (aviso de captação) ===== */
+        .capta-banner {
+            background: linear-gradient(90deg, #C9A227, #e8c14a);
+            color: #2a1f00; font-weight: 900; text-align: center;
+            padding: 10px 16px; border-radius: 12px; margin-bottom: 12px;
+            font-size: 1.5em; letter-spacing: 0.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+        }
+        .entrega-lista { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+        .entrega-card {
+            display: flex; align-items: center; gap: 18px;
+            background: linear-gradient(135deg, #0d6efd 0%, #0a4fb5 100%);
+            color: #fff; border-radius: 18px; padding: 14px 20px;
+            box-shadow: 0 6px 22px rgba(0,0,0,0.28); border: 2px solid rgba(255,255,255,0.15);
+        }
+        .entrega-card.oficina { background: linear-gradient(135deg, #06d6a0 0%, #04a37a 100%); color: #042a1f; }
+        .entrega-card.urgente { background: linear-gradient(135deg, #ff6b6b 0%, #e02424 100%); color: #fff; animation: pulseUrg 1.6s ease-in-out infinite; }
+        @keyframes pulseUrg { 0%,100% { box-shadow: 0 6px 22px rgba(224,36,36,0.35);} 50% { box-shadow: 0 6px 30px rgba(224,36,36,0.75);} }
+        .entrega-card .dias-badge {
+            flex-shrink: 0; text-align: center; background: rgba(255,255,255,0.30);
+            border-radius: 16px; padding: 10px 16px; min-width: 110px;
+        }
+        .entrega-card .dias-num { font-size: 3.4em; font-weight: 900; line-height: 0.95; }
+        .entrega-card .dias-lbl { font-size: 1em; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .entrega-card .info { flex: 1; min-width: 0; }
+        .entrega-card .car-pref { font-size: 2.4em; font-weight: 900; line-height: 1; }
+        .entrega-card .car-model { font-size: 1.3em; font-weight: 700; opacity: 0.92; }
+        .entrega-card .car-extra { font-size: 1.05em; opacity: 0.85; margin-top: 2px; }
+        .entrega-lista.compacta .entrega-card { padding: 10px 16px; gap: 12px; }
+        .entrega-lista.compacta .dias-num { font-size: 2.6em; }
+        .entrega-lista.compacta .car-pref { font-size: 1.9em; }
+        .entrega-lista.compacta .car-model { font-size: 1.1em; }
         .motoristas-lista {
             display: flex;
             flex-direction: column;
@@ -638,21 +670,18 @@
             </div>
         </div>
 
-        <div class="motoristas-stats">
-            <div class="stat-pill">🔧 Prontos na oficina (≤5 dias): <span id="countEntregaOficina">0</span></div>
-            <div class="stat-pill">🚙 A receber dos motoristas: <span id="countEntregaMotorista">0</span></div>
-        </div>
+        <div class="capta-banner">🎯 AGENDA DE CAPTAÇÃO — carros ficando disponíveis. Trabalhe a captação dos motoristas!</div>
 
         <div class="motoristas-body">
             <div class="motoristas-section disponiveis">
-                <h2>🔧 Prontos na Oficina (em até 5 dias)</h2>
-                <div class="vehicle-list" id="entregaOficinaLista">
+                <h2>🔧 Prontos na Oficina · <span id="countEntregaOficina">0</span></h2>
+                <div class="entrega-lista" id="entregaOficinaLista">
                     <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
                 </div>
             </div>
             <div class="motoristas-section carros">
-                <h2>🚙 A Receber dos Motoristas</h2>
-                <div class="vehicle-list" id="entregaMotoristaLista">
+                <h2>🚙 A Receber dos Motoristas · <span id="countEntregaMotorista">0</span></h2>
+                <div class="entrega-lista" id="entregaMotoristaLista">
                     <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
                 </div>
             </div>
@@ -878,14 +907,7 @@
             if (telaAtual === 3) renderizarEntregas();
         }
 
-        // ===== TELA 3: PREVISÃO DE ENTREGAS =====
-        // Texto amigável de contagem de dias
-        function textoDias(dias) {
-            if (dias < 0) return { txt: '⚠️ ATRASADO', cor: '#ff4444' };
-            if (dias === 0) return { txt: '🔴 HOJE', cor: '#ff4444' };
-            if (dias === 1) return { txt: 'amanhã', cor: '#06d6a0' };
-            return { txt: 'em ' + dias + ' dias', cor: '#06d6a0' };
-        }
+        // ===== TELA 3: PREVISÃO DE ENTREGAS (aviso de captação) =====
         function diasAte(dataStr) {
             const d = parsearData(dataStr);
             if (!d) return null;
@@ -893,43 +915,50 @@
             d.setHours(0,0,0,0);
             return Math.round((d - hoje) / 86400000);
         }
-        // Renderiza uma coluna de entregas (com auto-encolher e "+N outros")
-        function renderColunaEntrega(elId, itens, vazioMsg, MAX) {
+        // badge grande de dias (o número é o destaque do card)
+        function badgeDias(dias) {
+            if (dias < 0) return { num: '!', lbl: 'atrasado', urgente: true };
+            if (dias === 0) return { num: 'HOJE', lbl: 'pronto', urgente: true };
+            if (dias === 1) return { num: '1', lbl: 'dia', urgente: false };
+            return { num: String(dias), lbl: 'dias', urgente: false };
+        }
+        // Renderiza uma coluna de entregas com cards de captação (grande, com contador)
+        function renderColunaEntrega(elId, itens, vazioMsg, MAX, classeCard) {
             const el = document.getElementById(elId);
             if (!el) return;
             if (itens.length === 0) {
                 el.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">' + vazioMsg + '</div>';
-                el.classList.remove('size-medium','size-small','size-tiny');
+                el.classList.remove('compacta');
                 return;
             }
             const mostrar = itens.slice(0, MAX);
             const resto = itens.length - mostrar.length;
+            el.classList.toggle('compacta', mostrar.length > 3);
             el.innerHTML = mostrar.map(it => {
-                const info = textoDias(it.dias);
+                const b = badgeDias(it.dias);
+                const cls = b.urgente ? 'urgente' : (classeCard || '');
+                const numFonte = b.num.length > 2 ? 'font-size:1.8em;' : '';
                 return `
-                    <div class="vehicle-item">
-                        <div class="vehicle-prefix">${it.prefixo}</div>
-                        <div class="vehicle-model">${it.modelo}</div>
-                        ${it.sub ? `<div class="vehicle-oficina">${it.sub}</div>` : ''}
-                        <div class="vehicle-date-info" style="color:${info.cor};font-weight:800;">⏳ ${info.txt}</div>
-                        <div class="vehicle-date-info" style="opacity:0.7;">📅 ${it.dataFmt}</div>
+                    <div class="entrega-card ${cls}">
+                        <div class="dias-badge">
+                            <div class="dias-num" style="${numFonte}">${b.num}</div>
+                            <div class="dias-lbl">${b.lbl}</div>
+                        </div>
+                        <div class="info">
+                            <div class="car-pref">${it.prefixo || '—'}</div>
+                            <div class="car-model">${it.modelo || ''}</div>
+                            <div class="car-extra">${it.sub ? it.sub + ' · ' : ''}📅 ${it.dataFmt}</div>
+                        </div>
                     </div>`;
-            }).join('') + (resto > 0 ? `<div style="grid-column:1/-1;text-align:center;opacity:0.7;font-size:0.9em;padding:8px;">+ ${resto} outro(s)…</div>` : '');
-            // auto-encolher pela quantidade
-            const n = mostrar.length;
-            el.classList.remove('size-medium','size-small','size-tiny');
-            if (n > 6) el.classList.add('size-tiny');
-            else if (n > 4) el.classList.add('size-small');
-            else if (n > 3) el.classList.add('size-medium');
+            }).join('') + (resto > 0 ? `<div style="text-align:center;opacity:0.7;font-size:1em;padding:6px;font-weight:700;">+ ${resto} outro(s) no calendário…</div>` : '');
         }
         function renderizarEntregas() {
-            const emManutencao = s => ['manutencao','mecanica','funilaria','eletrica'].includes(s);
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
-            // Oficina: previsão de entrega em até 5 dias (inclui atrasados/hoje)
+            // Oficina: só a partir de 5 dias (calendário de captação — dá tempo de captar motorista)
             const oficina = veiculos
                 .filter(v => (v.nova_previsao || v.previsao_entrega))
-                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { v, dias: diasAte(src), dataFmt: fmt(src), src }; })
-                .filter(o => o.dias !== null && o.dias <= 5)
+                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { v, dias: diasAte(src), dataFmt: fmt(src) }; })
+                .filter(o => o.dias !== null && o.dias >= 5)
                 .sort((a,b) => a.dias - b.dias)
                 .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: (o.v.oficina || o.v.localizacao) ? '📍 ' + (o.v.oficina || o.v.localizacao) : '', dias: o.dias, dataFmt: o.dataFmt }));
             // Motoristas: parada programada (qualquer data)
@@ -942,8 +971,8 @@
 
             document.getElementById('countEntregaOficina').textContent = oficina.length;
             document.getElementById('countEntregaMotorista').textContent = motorista.length;
-            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro pronto nos próximos 5 dias 🎉', 9);
-            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 9);
+            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro previsto a partir de 5 dias', 6, 'oficina');
+            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 6, '');
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
