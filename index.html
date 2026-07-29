@@ -980,10 +980,8 @@
                         </div>
                     </div>`;
             }).join('') + (resto > 0 ? `<div style="text-align:center;opacity:0.7;font-size:1em;padding:6px;font-weight:700;">+ ${resto} outro(s) no calendário…</div>` : '');
-            // Tamanho do card pela QUANTIDADE (direto e confiável, não depende de medir a tela)
-            const n = mostrar.length;
-            const fs = n <= 3 ? 22 : n <= 4 ? 19 : n <= 5 ? 16 : n <= 6 ? 15 : n <= 7 ? 13.5 : n <= 8 ? 12.5 : n <= 10 ? 11 : 10;
-            el.style.fontSize = fs + 'px';
+            // auto-ajuste por medição (adapta a qualquer altura de tela); roda quando a tela estiver visível
+            requestAnimationFrame(() => requestAnimationFrame(() => autoAjustar(el)));
         }
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
@@ -1012,13 +1010,13 @@
         // ===== AJUSTAR TAMANHO CARDS =====
         // AUTO-AJUSTE: acha o MAIOR tamanho de card que faz caber TODOS na tela (sem scroll)
         function autoAjustar(list) {
-            if (!list) return;
+            if (!list || list.children.length === 0) return;
             const alturaDisp = list.clientHeight;
-            if (!alturaDisp || list.children.length === 0) return;
-            let fs = 26; // px — tamanho base máximo (cards grandes quando há poucos carros)
-            const MIN = 6;
+            if (!alturaDisp) return; // tela ainda não visível — será chamado de novo ao aparecer
+            let fs = 30; // px — tamanho base máximo (cards grandes quando há poucos carros)
+            const MIN = 5;
             list.style.fontSize = fs + 'px';
-            let guarda = 60;
+            let guarda = 80;
             // encolhe 1px por vez até o conteúdo caber inteiro na área visível
             while (guarda-- > 0 && fs > MIN && list.scrollHeight > alturaDisp + 2) {
                 fs -= 1;
@@ -1026,7 +1024,7 @@
             }
         }
         function autoAjustarTodos() {
-            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista']
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregaOficinaLista','entregaMotoristaLista']
                 .forEach(id => autoAjustar(document.getElementById(id)));
         }
         // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
@@ -1176,8 +1174,9 @@
             telaTimer = duracaoTela(n);
             if (n === 2) renderizarCarrosDisp();
             if (n === 3) renderizarEntregas();
-            // a tela virou visível agora — reajusta os cards à altura real
-            setTimeout(autoAjustarTodos, 60);
+            // a tela virou visível agora — reajusta os cards à altura real (2x por garantia)
+            setTimeout(autoAjustarTodos, 80);
+            setTimeout(autoAjustarTodos, 400);
         }
 
         function trocarTela() {
