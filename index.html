@@ -208,12 +208,13 @@
         }
         .vehicle-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 16px;
-            overflow-y: auto;
+            grid-template-columns: repeat(auto-fill, minmax(11em, 1fr));
+            gap: 0.7em;
+            overflow: hidden;
             align-content: start;
             flex: 1;
             min-height: 0;
+            font-size: 20px; /* base ajustada automaticamente pelo autoAjustar() */
         }
         /* Cards GRANDES para chamar atenção na TV (encolhem pouquíssimo) */
         .vehicle-list.size-medium { grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)); gap: 14px; }
@@ -224,12 +225,12 @@
         .vehicle-list.size-tiny .vehicle-prefix { font-size: 2.3em; }
         .vehicle-item {
             background: rgba(255,255,255,0.08);
-            padding: 18px 20px;
+            padding: 0.7em 0.85em;
             border-radius: 14px;
             border: 2px solid rgba(255,255,255,0.12);
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 0.2em;
             animation: fadeIn 0.4s ease;
         }
         .vehicle-prefix { font-size: 2.9em; font-weight: 800; color: #5b8def; line-height: 1; }
@@ -321,18 +322,19 @@
         .motoristas-lista {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 0.55em;
             flex: 1;
-            overflow-y: auto;
+            overflow: hidden;
+            font-size: 20px; /* base ajustada automaticamente pelo autoAjustar() */
         }
         .motorista-card {
             background: rgba(6,214,160,0.08);
             border: 2px solid rgba(6,214,160,0.25);
             border-radius: 14px;
-            padding: 16px 20px;
+            padding: 0.7em 0.9em;
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 0.8em;
             animation: fadeIn 0.4s ease;
         }
         .motorista-avatar {
@@ -355,10 +357,10 @@
             background: rgba(102,126,234,0.08);
             border: 2px solid rgba(102,126,234,0.25);
             border-radius: 14px;
-            padding: 16px 20px;
+            padding: 0.7em 0.9em;
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 0.8em;
             animation: fadeIn 0.4s ease;
         }
         .carro-prefixo-badge {
@@ -1003,16 +1005,29 @@
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
-        function ajustarTamanhoCards() {
-            [document.getElementById('disponiveisList'), document.getElementById('manutencaoList')].forEach(lista => {
-                if (!lista) return;
-                const n = lista.querySelectorAll('.vehicle-item').length;
-                lista.classList.remove('size-medium','size-small','size-tiny');
-                if (n > 6) lista.classList.add('size-tiny');
-                else if (n > 4) lista.classList.add('size-small');
-                else if (n > 3) lista.classList.add('size-medium');
-            });
+        // AUTO-AJUSTE: acha o MAIOR tamanho de card que faz caber TODOS na tela (sem scroll)
+        function autoAjustar(list) {
+            if (!list) return;
+            const alturaDisp = list.clientHeight;
+            if (!alturaDisp || list.children.length === 0) return;
+            let fs = 26; // px — tamanho base máximo (cards grandes quando há poucos carros)
+            const MIN = 6;
+            list.style.fontSize = fs + 'px';
+            let guarda = 60;
+            // encolhe 1px por vez até o conteúdo caber inteiro na área visível
+            while (guarda-- > 0 && fs > MIN && list.scrollHeight > alturaDisp + 2) {
+                fs -= 1;
+                list.style.fontSize = fs + 'px';
+            }
         }
+        function autoAjustarTodos() {
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista']
+                .forEach(id => autoAjustar(document.getElementById(id)));
+        }
+        // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
+        function ajustarTamanhoCards() { autoAjustarTodos(); }
+        // reajusta quando a janela muda de tamanho (ex.: entrar/sair de tela cheia)
+        window.addEventListener('resize', () => setTimeout(autoAjustarTodos, 80));
 
         // ===== MOTORISTAS =====
         async function atualizarMotoristas() {
@@ -1100,6 +1115,7 @@
                         <span class="motorista-badge badge-aguardando">⏳ Aguardando</span>
                     </div>`;
             }).join('');
+            autoAjustar(lista);
         }
 
         function renderizarCarrosDisp() {
@@ -1127,6 +1143,7 @@
                         ${tipoBadge}
                     </div>`;
             }).join('');
+            autoAjustar(lista);
         }
 
         // ===== ROTAÇÃO DE TELAS =====
@@ -1154,6 +1171,8 @@
             telaTimer = duracaoTela(n);
             if (n === 2) renderizarCarrosDisp();
             if (n === 3) renderizarEntregas();
+            // a tela virou visível agora — reajusta os cards à altura real
+            setTimeout(autoAjustarTodos, 60);
         }
 
         function trocarTela() {
