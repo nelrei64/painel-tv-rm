@@ -297,30 +297,29 @@
             padding: 10px 16px; border-radius: 12px; margin-bottom: 12px;
             font-size: 1.5em; letter-spacing: 0.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
         }
-        .entrega-lista { display: flex; flex-direction: column; gap: 0.55em; overflow: hidden; flex: 1; min-height: 0; font-size: 20px; }
-        .entrega-card {
-            display: flex; align-items: center; gap: 0.8em;
-            background: linear-gradient(135deg, #0d6efd 0%, #0a4fb5 100%);
-            color: #fff; border-radius: 18px; padding: 0.6em 0.9em;
-            box-shadow: 0 6px 22px rgba(0,0,0,0.28); border: 2px solid rgba(255,255,255,0.15);
-        }
-        .entrega-card.oficina { background: linear-gradient(135deg, #06d6a0 0%, #04a37a 100%); color: #042a1f; }
-        .entrega-card.urgente { background: linear-gradient(135deg, #ff6b6b 0%, #e02424 100%); color: #fff; animation: pulseUrg 1.6s ease-in-out infinite; }
         @keyframes pulseUrg { 0%,100% { box-shadow: 0 6px 22px rgba(224,36,36,0.35);} 50% { box-shadow: 0 6px 30px rgba(224,36,36,0.75);} }
-        .entrega-card .dias-badge {
-            flex-shrink: 0; text-align: center; background: rgba(255,255,255,0.30);
-            border-radius: 0.7em; padding: 0.35em 0.6em; min-width: 3.4em;
+        /* Grade de largura total: cards grandes, várias colunas, todos visíveis */
+        .entregas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(8.5em, 1fr));
+            gap: 0.6em;
+            flex: 1; min-height: 0; overflow: hidden;
+            align-content: start;
+            font-size: 26px; /* base ajustada pelo autoAjustar() */
         }
-        .entrega-card .dias-num { font-size: 2.5em; font-weight: 900; line-height: 0.95; }
-        .entrega-card .dias-lbl { font-size: 0.85em; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .entrega-card .info { flex: 1; min-width: 0; }
-        .entrega-card .car-pref { font-size: 1.9em; font-weight: 900; line-height: 1; }
-        .entrega-card .car-model { font-size: 1.1em; font-weight: 700; opacity: 0.92; }
-        .entrega-card .car-extra { font-size: 0.95em; opacity: 0.85; margin-top: 1px; }
-        .entrega-lista.compacta .entrega-card { padding: 10px 16px; gap: 12px; }
-        .entrega-lista.compacta .dias-num { font-size: 2.6em; }
-        .entrega-lista.compacta .car-pref { font-size: 1.9em; }
-        .entrega-lista.compacta .car-model { font-size: 1.1em; }
+        .eg-card {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; border-radius: 0.6em; padding: 0.5em 0.4em;
+            background: linear-gradient(135deg, #06d6a0 0%, #04a37a 100%); color: #042a1f;
+            border: 2px solid rgba(255,255,255,0.18); box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+            min-width: 0; overflow: hidden;
+        }
+        .eg-card.atrasado { background: linear-gradient(135deg, #ff6b6b 0%, #e02424 100%); color: #fff; animation: pulseUrg 1.6s ease-in-out infinite; }
+        .eg-origem { font-size: 0.85em; font-weight: 800; opacity: 0.85; }
+        .eg-pref { font-size: 2.7em; font-weight: 900; line-height: 1; }
+        .eg-model { font-size: 0.95em; font-weight: 700; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .eg-dias { font-size: 1.7em; font-weight: 900; line-height: 1.05; margin-top: 0.05em; }
+        .eg-data { font-size: 0.8em; opacity: 0.8; }
         .motoristas-lista {
             display: flex;
             flex-direction: column;
@@ -689,19 +688,13 @@
 
         <div class="capta-banner">🎯 AGENDA DE CAPTAÇÃO — carros ficando disponíveis. Trabalhe a captação dos motoristas!</div>
 
-        <div class="motoristas-body">
-            <div class="motoristas-section disponiveis">
-                <h2>🔧 Vão ficar prontos na oficina · <span id="countEntregaOficina">0</span></h2>
-                <div class="entrega-lista" id="entregaOficinaLista">
-                    <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
-                </div>
-            </div>
-            <div class="motoristas-section carros">
-                <h2>🚙 A Receber dos Motoristas · <span id="countEntregaMotorista">0</span></h2>
-                <div class="entrega-lista" id="entregaMotoristaLista">
-                    <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando...</div>
-                </div>
-            </div>
+        <div class="motoristas-stats">
+            <div class="stat-pill">🔧 Oficina: <span id="countEntregaOficina">0</span></div>
+            <div class="stat-pill">🚙 Motoristas: <span id="countEntregaMotorista">0</span></div>
+        </div>
+
+        <div class="entregas-grid" id="entregasGrid">
+            <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;grid-column:1/-1;">Carregando...</div>
         </div>
     </div>
 
@@ -952,59 +945,46 @@
             if (dias === 1) return { num: '1', lbl: 'dia', atrasado: false };
             return { num: String(dias), lbl: 'dias', atrasado: false };
         }
-        // Renderiza uma coluna de entregas com cards de captação (grande, com contador)
-        function renderColunaEntrega(elId, itens, vazioMsg, MAX, classeCard) {
-            const el = document.getElementById(elId);
-            if (!el) return;
-            if (itens.length === 0) {
-                el.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">' + vazioMsg + '</div>';
-                el.classList.remove('compacta');
-                return;
-            }
-            const mostrar = itens.slice(0, MAX);
-            const resto = itens.length - mostrar.length;
-            el.innerHTML = mostrar.map(it => {
-                const b = badgeDias(it.dias);
-                const cls = b.atrasado ? 'urgente' : 'oficina'; // vermelho atrasado / verde no prazo
-                const numFonte = b.num.length > 2 ? 'font-size:1.8em;' : '';
-                return `
-                    <div class="entrega-card ${cls}">
-                        <div class="dias-badge">
-                            <div class="dias-num" style="${numFonte}">${b.num}</div>
-                            <div class="dias-lbl">${b.lbl}</div>
-                        </div>
-                        <div class="info">
-                            <div class="car-pref">${it.prefixo || '—'}</div>
-                            <div class="car-model">${it.modelo || ''}</div>
-                            <div class="car-extra">${it.sub ? it.sub + ' · ' : ''}📅 ${it.dataFmt}</div>
-                        </div>
-                    </div>`;
-            }).join('') + (resto > 0 ? `<div style="text-align:center;opacity:0.7;font-size:1em;padding:6px;font-weight:700;">+ ${resto} outro(s) no calendário…</div>` : '');
-            // auto-ajuste por medição (adapta a qualquer altura de tela); roda quando a tela estiver visível
-            requestAnimationFrame(() => requestAnimationFrame(() => autoAjustar(el)));
-        }
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
             const naOficina = s => ['manutencao','mecanica','funilaria','eletrica'].includes(s);
-            // Oficina: TODO carro EM MANUTENÇÃO com previsão de entrega (do mais próximo p/ o mais distante)
+            // Oficina: TODO carro EM MANUTENÇÃO com previsão de entrega
             const oficina = veiculos
                 .filter(v => naOficina(v.status) && (v.nova_previsao || v.previsao_entrega))
-                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { v, dias: diasAte(src), dataFmt: fmt(src) }; })
-                .filter(o => o.dias !== null)
-                .sort((a,b) => a.dias - b.dias)
-                .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: '🔧 na oficina' + ((o.v.oficina || o.v.localizacao) ? ' (' + (o.v.oficina || o.v.localizacao) + ')' : ''), dias: o.dias, dataFmt: o.dataFmt }));
+                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { origem: 'oficina', prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(src), dataFmt: fmt(src) }; })
+                .filter(o => o.dias !== null);
             // Motoristas: parada programada (qualquer data)
             const motorista = veiculos
                 .filter(v => v.data_programada && v.data_programada !== '')
-                .map(v => ({ v, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada) }))
-                .filter(o => o.dias !== null)
-                .sort((a,b) => a.dias - b.dias)
-                .map(o => ({ prefixo: o.v.prefixo, modelo: o.v.modelo, sub: o.v.placa || '', dias: o.dias, dataFmt: o.dataFmt }));
+                .map(v => ({ origem: 'motorista', prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada) }))
+                .filter(o => o.dias !== null);
 
             document.getElementById('countEntregaOficina').textContent = oficina.length;
             document.getElementById('countEntregaMotorista').textContent = motorista.length;
-            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro com previsão na oficina', 20, 'oficina');
-            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 20, '');
+
+            // Grade única de largura total, ordenada por quem fica pronto primeiro
+            const todos = oficina.concat(motorista).sort((a,b) => a.dias - b.dias);
+            const grid = document.getElementById('entregasGrid');
+            if (!grid) return;
+            if (todos.length === 0) {
+                grid.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;grid-column:1/-1;">Nenhuma entrega prevista</div>';
+                return;
+            }
+            grid.innerHTML = todos.map(it => {
+                const b = badgeDias(it.dias);
+                const cls = b.atrasado ? 'atrasado' : '';
+                const diasTxt = b.atrasado ? (b.num + ' ' + b.lbl) : (it.dias === 0 ? 'HOJE' : it.dias === 1 ? 'amanhã' : 'em ' + it.dias + ' dias');
+                const selo = it.origem === 'oficina' ? '🔧 Oficina' : '🚙 Motorista';
+                return `
+                    <div class="eg-card ${cls}">
+                        <div class="eg-origem">${selo}</div>
+                        <div class="eg-pref">${it.prefixo || '—'}</div>
+                        <div class="eg-model">${it.modelo || ''}</div>
+                        <div class="eg-dias">${diasTxt}</div>
+                        <div class="eg-data">📅 ${it.dataFmt}</div>
+                    </div>`;
+            }).join('');
+            requestAnimationFrame(() => requestAnimationFrame(() => autoAjustar(grid)));
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
@@ -1024,7 +1004,7 @@
             }
         }
         function autoAjustarTodos() {
-            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregaOficinaLista','entregaMotoristaLista']
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregasGrid']
                 .forEach(id => autoAjustar(document.getElementById(id)));
         }
         // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
