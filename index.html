@@ -978,7 +978,10 @@
                         </div>
                     </div>`;
             }).join('') + (resto > 0 ? `<div style="text-align:center;opacity:0.7;font-size:1em;padding:6px;font-weight:700;">+ ${resto} outro(s) no calendário…</div>` : '');
-            autoAjustar(el);
+            // Tamanho do card pela QUANTIDADE (direto e confiável, não depende de medir a tela)
+            const n = mostrar.length;
+            const fs = n <= 3 ? 22 : n <= 4 ? 19 : n <= 5 ? 16 : n <= 6 ? 15 : n <= 7 ? 13.5 : n <= 8 ? 12.5 : n <= 10 ? 11 : 10;
+            el.style.fontSize = fs + 'px';
         }
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
@@ -1021,7 +1024,7 @@
             }
         }
         function autoAjustarTodos() {
-            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregaOficinaLista','entregaMotoristaLista']
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista']
                 .forEach(id => autoAjustar(document.getElementById(id)));
         }
         // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
