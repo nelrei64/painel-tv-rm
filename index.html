@@ -295,11 +295,11 @@
             padding: 10px 16px; border-radius: 12px; margin-bottom: 12px;
             font-size: 1.5em; letter-spacing: 0.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
         }
-        .entrega-lista { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+        .entrega-lista { display: flex; flex-direction: column; gap: 0.55em; overflow: hidden; flex: 1; min-height: 0; font-size: 20px; }
         .entrega-card {
-            display: flex; align-items: center; gap: 18px;
+            display: flex; align-items: center; gap: 0.8em;
             background: linear-gradient(135deg, #0d6efd 0%, #0a4fb5 100%);
-            color: #fff; border-radius: 18px; padding: 14px 20px;
+            color: #fff; border-radius: 18px; padding: 0.6em 0.9em;
             box-shadow: 0 6px 22px rgba(0,0,0,0.28); border: 2px solid rgba(255,255,255,0.15);
         }
         .entrega-card.oficina { background: linear-gradient(135deg, #06d6a0 0%, #04a37a 100%); color: #042a1f; }
@@ -961,7 +961,6 @@
             }
             const mostrar = itens.slice(0, MAX);
             const resto = itens.length - mostrar.length;
-            el.classList.toggle('compacta', mostrar.length > 3);
             el.innerHTML = mostrar.map(it => {
                 const b = badgeDias(it.dias);
                 const cls = b.atrasado ? 'urgente' : 'oficina'; // vermelho atrasado / verde no prazo
@@ -979,6 +978,7 @@
                         </div>
                     </div>`;
             }).join('') + (resto > 0 ? `<div style="text-align:center;opacity:0.7;font-size:1em;padding:6px;font-weight:700;">+ ${resto} outro(s) no calendário…</div>` : '');
+            autoAjustar(el);
         }
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
@@ -1000,8 +1000,8 @@
 
             document.getElementById('countEntregaOficina').textContent = oficina.length;
             document.getElementById('countEntregaMotorista').textContent = motorista.length;
-            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro com previsão na oficina', 8, 'oficina');
-            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 8, '');
+            renderColunaEntrega('entregaOficinaLista', oficina, 'Nenhum carro com previsão na oficina', 20, 'oficina');
+            renderColunaEntrega('entregaMotoristaLista', motorista, 'Nenhuma entrega programada', 20, '');
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
@@ -1021,7 +1021,7 @@
             }
         }
         function autoAjustarTodos() {
-            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista']
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregaOficinaLista','entregaMotoristaLista']
                 .forEach(id => autoAjustar(document.getElementById(id)));
         }
         // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
