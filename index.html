@@ -641,13 +641,13 @@
         </div>
 
         <div class="motoristas-stats">
-            <div class="stat-pill">⏳ Aguardando Carro: <span id="countLiberados">0</span></div>
+            <div class="stat-pill">🚗 Retirando Carro: <span id="countLiberados">0</span></div>
             <div class="stat-pill">🔵 Carros Disponíveis: <span id="countCarrosDisp">0</span></div>
         </div>
 
         <div class="motoristas-body">
             <div class="motoristas-section disponiveis">
-                <h2>⏳ Motoristas Aguardando Carro</h2>
+                <h2>🚗 Motoristas Retirando Carro</h2>
                 <div class="motoristas-lista" id="motoristasLista">
                     <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">Carregando planilha...</div>
                 </div>
@@ -1058,7 +1058,7 @@
                 const posicao = (idxPosicao >= 0 ? cols[idxPosicao] : cols[1])?.trim() || '';
                 if (!nome) continue;
                 const posicaoNorm = posicao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (!posicaoNorm.includes('aguardando carro')) continue;
+                if (!posicaoNorm.includes('retirando carro')) continue;
                 resultado.push({ nome, posicao, status: 'liberado' });
             }
             return resultado;
@@ -1083,7 +1083,7 @@
             document.getElementById('countLiberados').textContent = motoristas.length;
             
             if (motoristas.length === 0) {
-                lista.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">✅ Nenhum motorista aguardando carro</div>';
+                lista.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;">✅ Nenhum motorista retirando carro</div>';
                 return;
             }
             lista.innerHTML = motoristas.map(m => {
@@ -1093,9 +1093,9 @@
                         <div class="motorista-avatar">${inicial}</div>
                         <div class="motorista-info">
                             <div class="motorista-nome">${m.nome}</div>
-                            <div class="motorista-posicao">🚗 Aguardando Carro</div>
+                            <div class="motorista-posicao">🚗 Retirando Carro</div>
                         </div>
-                        <span class="motorista-badge badge-aguardando">⏳ Aguardando</span>
+                        <span class="motorista-badge badge-aguardando">🚗 Retirando</span>
                     </div>`;
             }).join('');
             autoAjustar(lista);
