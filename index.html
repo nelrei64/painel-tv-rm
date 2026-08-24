@@ -303,9 +303,9 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(8.5em, 1fr));
             gap: 0.6em;
-            flex: 1; min-height: 0; overflow: hidden;
+            overflow: hidden;
             align-content: start;
-            font-size: 26px; /* base ajustada pelo autoAjustar() */
+            font-size: 26px; /* base ajustada pelo autoAjustarEntregas() */
         }
         .eg-card {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -321,8 +321,8 @@
         .eg-dias { font-size: 1.7em; font-weight: 900; line-height: 1.05; margin-top: 0.05em; }
         .eg-data { font-size: 0.8em; opacity: 0.8; }
         /* Tela 3 dividida em 2 seções: oficina (verde) e devolução (azul) */
-        .entregas-wrap { display: flex; flex-direction: column; gap: 0.7em; flex: 1; min-height: 0; }
-        .entregas-sec { display: flex; flex-direction: column; min-height: 0; flex: 1 1 0; }
+        .entregas-wrap { display: flex; flex-direction: column; gap: 0.7em; flex: 1; min-height: 0; overflow: hidden; }
+        .entregas-sec { display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto; }
         .entregas-sec .sec-title { display: flex; align-items: center; gap: 0.5em; font-size: 1.2em; font-weight: 800; margin-bottom: 0.4em; }
         .entregas-sec .sec-count { background: rgba(0,0,0,0.28); padding: 2px 12px; border-radius: 20px; font-size: 0.7em; }
         .sec-dev { border: 2px dashed #7aa2ff; border-radius: 16px; padding: 0.55em 0.7em; background: rgba(67,97,238,0.08); }
@@ -996,13 +996,22 @@
             if (gOf) gOf.innerHTML = oficina.length ? oficina.map(it => card(it, false)).join('') : '<div class="ent-empty">Nenhum carro previsto na oficina</div>';
             if (gDev) gDev.innerHTML = devolucao.length ? devolucao.map(it => card(it, true)).join('') : '<div class="ent-empty">Nenhuma devolução programada</div>';
 
-            // distribui o espaço vertical proporcional à quantidade de carros de cada seção
-            const secOf = gOf && gOf.closest('.entregas-sec');
-            const secDev = gDev && gDev.closest('.entregas-sec');
-            if (secOf) secOf.style.flexGrow = String(Math.max(1, oficina.length));
-            if (secDev) secDev.style.flexGrow = String(Math.max(1, devolucao.length));
+            requestAnimationFrame(() => requestAnimationFrame(autoAjustarEntregas));
+        }
 
-            requestAnimationFrame(() => requestAnimationFrame(() => { autoAjustar(gOf); autoAjustar(gDev); }));
+        // Auto-ajuste das 2 grades da Tela 3 JUNTAS: encolhe uma fonte comum até tudo caber
+        // no espaço da tela (nunca corta; cada seção ocupa o tanto que precisa).
+        function autoAjustarEntregas() {
+            const wrap = document.querySelector('.entregas-wrap');
+            const grids = ['entregasGridOficina', 'entregasGridDevolucao'].map(id => document.getElementById(id)).filter(Boolean);
+            if (!wrap || !wrap.clientHeight || !grids.length) return;
+            let fs = 30; const MIN = 5;
+            grids.forEach(g => g.style.fontSize = fs + 'px');
+            let guarda = 80;
+            while (guarda-- > 0 && fs > MIN && wrap.scrollHeight > wrap.clientHeight + 2) {
+                fs -= 1;
+                grids.forEach(g => g.style.fontSize = fs + 'px');
+            }
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
@@ -1022,8 +1031,9 @@
             }
         }
         function autoAjustarTodos() {
-            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregasGridOficina','entregasGridDevolucao']
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista']
                 .forEach(id => autoAjustar(document.getElementById(id)));
+            autoAjustarEntregas();
         }
         // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
         function ajustarTamanhoCards() { autoAjustarTodos(); }
