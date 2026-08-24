@@ -320,6 +320,14 @@
         .eg-model { font-size: 0.95em; font-weight: 700; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .eg-dias { font-size: 1.7em; font-weight: 900; line-height: 1.05; margin-top: 0.05em; }
         .eg-data { font-size: 0.8em; opacity: 0.8; }
+        /* Tela 3 dividida em 2 seções: oficina (verde) e devolução (azul) */
+        .entregas-wrap { display: flex; flex-direction: column; gap: 0.7em; flex: 1; min-height: 0; }
+        .entregas-sec { display: flex; flex-direction: column; min-height: 0; flex: 1 1 0; }
+        .entregas-sec .sec-title { display: flex; align-items: center; gap: 0.5em; font-size: 1.2em; font-weight: 800; margin-bottom: 0.4em; }
+        .entregas-sec .sec-count { background: rgba(0,0,0,0.28); padding: 2px 12px; border-radius: 20px; font-size: 0.7em; }
+        .sec-dev { border: 2px dashed #7aa2ff; border-radius: 16px; padding: 0.55em 0.7em; background: rgba(67,97,238,0.08); }
+        .eg-card.dev { background: linear-gradient(135deg, #7aa2ff 0%, #4361ee 100%); color: #04122e; }
+        .ent-empty { opacity: 0.55; text-align: center; padding: 18px; grid-column: 1/-1; font-size: 0.9em; }
         .motoristas-lista {
             display: flex;
             flex-direction: column;
@@ -688,13 +696,19 @@
 
         <div class="capta-banner">🎯 AGENDA DE CAPTAÇÃO — carros ficando disponíveis. Trabalhe a captação dos motoristas!</div>
 
-        <div class="motoristas-stats">
-            <div class="stat-pill">🔧 Oficina: <span id="countEntregaOficina">0</span></div>
-            <div class="stat-pill">🚙 Motoristas: <span id="countEntregaMotorista">0</span></div>
-        </div>
-
-        <div class="entregas-grid" id="entregasGrid">
-            <div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;grid-column:1/-1;">Carregando...</div>
+        <div class="entregas-wrap">
+            <div class="entregas-sec">
+                <div class="sec-title">🔧 Ficando prontos na oficina <span class="sec-count" id="countEntregaOficina">0</span></div>
+                <div class="entregas-grid" id="entregasGridOficina">
+                    <div class="ent-empty">Carregando...</div>
+                </div>
+            </div>
+            <div class="entregas-sec sec-dev">
+                <div class="sec-title">🔄 Programados para Devolução <span class="sec-count" id="countEntregaMotorista">0</span></div>
+                <div class="entregas-grid" id="entregasGridDevolucao">
+                    <div class="ent-empty">Carregando...</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -951,40 +965,44 @@
             // Oficina: TODO carro EM MANUTENÇÃO com previsão de entrega
             const oficina = veiculos
                 .filter(v => naOficina(v.status) && (v.nova_previsao || v.previsao_entrega))
-                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { origem: 'oficina', prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(src), dataFmt: fmt(src) }; })
-                .filter(o => o.dias !== null);
-            // Motoristas: parada programada (qualquer data)
-            const motorista = veiculos
+                .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(src), dataFmt: fmt(src) }; })
+                .filter(o => o.dias !== null).sort((a,b) => a.dias - b.dias);
+            // Devolução: carros com DATA PROGRAMADA (voltando dos motoristas)
+            const devolucao = veiculos
                 .filter(v => v.data_programada && v.data_programada !== '')
-                .map(v => ({ origem: 'motorista', prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada) }))
-                .filter(o => o.dias !== null);
+                .map(v => ({ prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada) }))
+                .filter(o => o.dias !== null).sort((a,b) => a.dias - b.dias);
 
             document.getElementById('countEntregaOficina').textContent = oficina.length;
-            document.getElementById('countEntregaMotorista').textContent = motorista.length;
+            document.getElementById('countEntregaMotorista').textContent = devolucao.length;
 
-            // Grade única de largura total, ordenada por quem fica pronto primeiro
-            const todos = oficina.concat(motorista).sort((a,b) => a.dias - b.dias);
-            const grid = document.getElementById('entregasGrid');
-            if (!grid) return;
-            if (todos.length === 0) {
-                grid.innerHTML = '<div style="opacity:0.6;text-align:center;padding:40px;font-size:1.1em;grid-column:1/-1;">Nenhuma entrega prevista</div>';
-                return;
-            }
-            grid.innerHTML = todos.map(it => {
+            const card = (it, isDev) => {
                 const b = badgeDias(it.dias);
                 const cls = b.atrasado ? 'atrasado' : '';
                 const diasTxt = b.atrasado ? (b.num + ' ' + b.lbl) : (it.dias === 0 ? 'HOJE' : it.dias === 1 ? 'amanhã' : 'em ' + it.dias + ' dias');
-                const selo = it.origem === 'oficina' ? '🔧 Oficina' : '🚙 Motorista';
+                const selo = isDev ? '🚙 Motorista' : '🔧 Oficina';
                 return `
-                    <div class="eg-card ${cls}">
+                    <div class="eg-card ${isDev ? 'dev' : ''} ${cls}">
                         <div class="eg-origem">${selo}</div>
                         <div class="eg-pref">${it.prefixo || '—'}</div>
                         <div class="eg-model">${it.modelo || ''}</div>
                         <div class="eg-dias">${diasTxt}</div>
                         <div class="eg-data">📅 ${it.dataFmt}</div>
                     </div>`;
-            }).join('');
-            requestAnimationFrame(() => requestAnimationFrame(() => autoAjustar(grid)));
+            };
+
+            const gOf = document.getElementById('entregasGridOficina');
+            const gDev = document.getElementById('entregasGridDevolucao');
+            if (gOf) gOf.innerHTML = oficina.length ? oficina.map(it => card(it, false)).join('') : '<div class="ent-empty">Nenhum carro previsto na oficina</div>';
+            if (gDev) gDev.innerHTML = devolucao.length ? devolucao.map(it => card(it, true)).join('') : '<div class="ent-empty">Nenhuma devolução programada</div>';
+
+            // distribui o espaço vertical proporcional à quantidade de carros de cada seção
+            const secOf = gOf && gOf.closest('.entregas-sec');
+            const secDev = gDev && gDev.closest('.entregas-sec');
+            if (secOf) secOf.style.flexGrow = String(Math.max(1, oficina.length));
+            if (secDev) secDev.style.flexGrow = String(Math.max(1, devolucao.length));
+
+            requestAnimationFrame(() => requestAnimationFrame(() => { autoAjustar(gOf); autoAjustar(gDev); }));
         }
 
         // ===== AJUSTAR TAMANHO CARDS =====
@@ -1004,7 +1022,7 @@
             }
         }
         function autoAjustarTodos() {
-            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregasGrid']
+            ['disponiveisList','manutencaoList','motoristasLista','carrosDispLista','entregasGridOficina','entregasGridDevolucao']
                 .forEach(id => autoAjustar(document.getElementById(id)));
         }
         // compat: onde antes chamava ajustarTamanhoCards, agora auto-ajusta tudo
