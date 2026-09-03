@@ -327,6 +327,7 @@
         .entregas-sec .sec-count { background: rgba(0,0,0,0.28); padding: 2px 12px; border-radius: 20px; font-size: 0.7em; }
         .sec-dev { border: 2px dashed #7aa2ff; border-radius: 16px; padding: 0.55em 0.7em; background: rgba(67,97,238,0.08); }
         .eg-card.dev { background: linear-gradient(135deg, #7aa2ff 0%, #4361ee 100%); color: #04122e; }
+        .eg-card.eg-card-confirmado { background: linear-gradient(135deg, #06d6a0 0%, #05a377 100%); color: #001a12; }
         .ent-empty { opacity: 0.55; text-align: center; padding: 18px; grid-column: 1/-1; font-size: 0.9em; }
         .motoristas-lista {
             display: flex;
@@ -751,11 +752,13 @@
         const API_URL = 'https://script.google.com/macros/s/AKfycbyjPguI-YgSRgn7gt7VcQynI2S5aMGSn_n0RKM3sZxw87wm8qSDHMbZs3_BF8TdzGY9/exec';
         // Motoristas "Aguardando carro" agora vêm do CRM (Painel do dia), não mais da planilha ficha aprovacao
         const API_MOTORISTAS_URL = 'https://painelrm.moverexperience.com/api/tv/motoristas-aguardando';
+        const API_DEVOLUCOES_URL = 'https://painelrm.moverexperience.com/api/tv/devolucoes-avisadas';
         const META_OCUPACAO = 95;
         const INTERVALO_ATUALIZACAO = 60000; // 60 segundos
 
         let veiculos = [];
         let motoristas = [];
+        let devolucoesAvisadas = [];
         let statusAnterior = {};
         let ocupacaoOntem = null;
         let historicoDiario = {};
@@ -967,11 +970,26 @@
                 .filter(v => naOficina(v.status) && (v.nova_previsao || v.previsao_entrega))
                 .map(v => { const src = v.nova_previsao || v.previsao_entrega; return { prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(src), dataFmt: fmt(src) }; })
                 .filter(o => o.dias !== null).sort((a,b) => a.dias - b.dias);
-            // Devolução: carros com DATA PROGRAMADA (voltando dos motoristas)
-            const devolucao = veiculos
+            // Devolução: carros com DATA PROGRAMADA (voltando dos motoristas) — planilha
+            const devolucaoPlanilha = veiculos
                 .filter(v => v.data_programada && v.data_programada !== '')
-                .map(v => ({ prefixo: v.prefixo, modelo: v.modelo, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada) }))
-                .filter(o => o.dias !== null).sort((a,b) => a.dias - b.dias);
+                .map(v => ({ prefixo: v.prefixo, modelo: v.modelo, nome: null, dias: diasAte(v.data_programada), dataFmt: fmt(v.data_programada), formal: false }))
+                .filter(o => o.dias !== null);
+            // Devolução: avisos formais enviados pelos motoristas via formulário /devolucao
+            const devolucaoFormal = devolucoesAvisadas
+                .map(d => {
+                    const dt = d.dataDevolucao ? new Date(d.dataDevolucao) : null;
+                    const df = dt ? dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : '—';
+                    const dias = dt ? Math.round((dt.getTime() - Date.now()) / 86400000) : null;
+                    return { prefixo: d.prefixo, modelo: '', nome: d.nome, dias, dataFmt: df, formal: true, status: d.status };
+                })
+                .filter(o => o.dias !== null);
+            // Merge: avisos formais têm prioridade; remove duplicata de prefixo da planilha se já avisado formalmente
+            const prefixosFormal = new Set(devolucaoFormal.map(d => (d.prefixo||'').toLowerCase()));
+            const devolucao = [
+                ...devolucaoFormal,
+                ...devolucaoPlanilha.filter(d => !prefixosFormal.has((d.prefixo||'').toLowerCase()))
+            ].sort((a,b) => a.dias - b.dias);
 
             document.getElementById('countEntregaOficina').textContent = oficina.length;
             document.getElementById('countEntregaMotorista').textContent = devolucao.length;
@@ -980,12 +998,14 @@
                 const b = badgeDias(it.dias);
                 const cls = b.atrasado ? 'atrasado' : '';
                 const diasTxt = b.atrasado ? (b.num + ' ' + b.lbl) : (it.dias === 0 ? 'HOJE' : it.dias === 1 ? 'amanhã' : 'em ' + it.dias + ' dias');
-                const selo = isDev ? '🚙 Motorista' : '🔧 Oficina';
+                let selo = isDev ? '🚙 Motorista' : '🔧 Oficina';
+                if (it.formal) selo = it.status === 'confirmada' ? '✅ Confirmado' : '📱 Avisado';
+                const infoExtra = it.formal && it.nome ? `<div class="eg-model" style="font-size:0.85em;opacity:0.85">${it.nome}</div>` : `<div class="eg-model">${it.modelo || ''}</div>`;
                 return `
-                    <div class="eg-card ${isDev ? 'dev' : ''} ${cls}">
+                    <div class="eg-card ${isDev ? 'dev' : ''} ${cls}${it.formal && it.status === 'confirmada' ? ' eg-card-confirmado' : ''}">
                         <div class="eg-origem">${selo}</div>
                         <div class="eg-pref">${it.prefixo || '—'}</div>
-                        <div class="eg-model">${it.modelo || ''}</div>
+                        ${infoExtra}
                         <div class="eg-dias">${diasTxt}</div>
                         <div class="eg-data">📅 ${it.dataFmt}</div>
                     </div>`;
@@ -1127,6 +1147,19 @@
                     </div>`;
             }).join('');
             autoAjustar(lista);
+        }
+
+        // ===== DEVOLUÇÕES FORMAIS (avisos dos motoristas) =====
+        async function atualizarDevolucoes() {
+            try {
+                const response = await fetch(API_DEVOLUCOES_URL);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const dados = await response.json();
+                devolucoesAvisadas = dados.devolucoes || [];
+                if (telaAtual === 3) renderizarEntregas();
+            } catch(err) {
+                console.error('Erro devoluções:', err);
+            }
         }
 
         function renderizarCarrosDisp() {
@@ -1386,11 +1419,13 @@
             // Buscar dados imediatamente
             buscarDadosFrota();
             atualizarMotoristas();
+            atualizarDevolucoes();
 
             // Timers
             setInterval(atualizarDataHora, 60000);
             setInterval(buscarDadosFrota, INTERVALO_ATUALIZACAO);
             setInterval(atualizarMotoristas, 2 * 60 * 1000); // Motoristas a cada 2 min
+            setInterval(atualizarDevolucoes, 2 * 60 * 1000); // Devoluções a cada 2 min
             setInterval(updateTelaTimer, 1000);
         };
     </script>
