@@ -803,10 +803,24 @@
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 const dados = await response.json();
 
-                // Normaliza o status (minúsculo, sem acento) para o painel não
-                // "perder" carros por acento/maiúscula digitados na planilha
-                // (ex.: "Disponível" x "disponivel").
-                const normStatus = s => String(s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
+                // Normaliza o status (minúsculo, sem acento) e canonicaliza as
+                // variações digitadas na planilha para o painel não "perder"
+                // carros (ex.: "Disponível" x "disponivel", "funilaria/Pintura"
+                // x "funilaria", "Funilaria e Pintura", "Pintura", "Lataria").
+                const normStatus = s => {
+                    const base = String(s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
+                    if (!base) return base;
+                    // Funilaria/pintura/lataria em qualquer combinação → "funilaria"
+                    if (/funilaria|pintura|lataria/.test(base)) return 'funilaria';
+                    if (/eletric/.test(base)) return 'eletrica';
+                    if (/mecanic|motor|revisao/.test(base)) return 'mecanica';
+                    if (/manuten/.test(base)) return 'manutencao';
+                    if (/disponiv/.test(base)) return 'disponivel';
+                    if (/alugad|locad/.test(base)) return 'alugado';
+                    if (/reservad/.test(base)) return 'reservado';
+                    if (/venda|vendid/.test(base)) return 'venda';
+                    return base;
+                };
                 const novosVeiculos = (dados.veiculos || []).map(v => ({ ...v, status: normStatus(v.status) }));
                 if (novosVeiculos.length > 0) {
                     detectarMudancasStatus(novosVeiculos);
