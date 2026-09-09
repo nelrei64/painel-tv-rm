@@ -248,6 +248,7 @@
         .status-eletrica { background: #3a86ff; color: #fff; }
         .status-venda { background: #f72585; color: #fff; }
         .status-reservado { background: #4cc9f0; color: #000; }
+        .status-alvara { background: #2a9d8f; color: #fff; }
         .vehicle-date-info { font-size: 0.6em; margin-top: 3px; opacity: 0.75; color: #ffd166; }
         .vehicle-oficina { font-size: 0.6em; margin-top: 2px; font-weight: 700; color: #0d4a2f; opacity: 0.95; }
         .manutencao-atrasada {
@@ -815,6 +816,7 @@
                     if (/eletric/.test(base)) return 'eletrica';
                     if (/mecanic|motor|revisao/.test(base)) return 'mecanica';
                     if (/manuten/.test(base)) return 'manutencao';
+                    if (/alvar/.test(base)) return 'alvara';
                     if (/disponiv/.test(base)) return 'disponivel';
                     if (/alugad|locad/.test(base)) return 'alugado';
                     if (/reservad/.test(base)) return 'reservado';
@@ -847,7 +849,7 @@
             const total = veiculos.length;
             const disponiveis = veiculos.filter(v => v.status === 'disponivel').length;
             const alugados = veiculos.filter(v => v.status === 'alugado').length;
-            const manutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica'].includes(v.status)).length;
+            const manutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica','alvara'].includes(v.status)).length;
             const ocupacao = total > 0 ? Math.round((alugados / total) * 100) : 0;
 
             document.getElementById('ocupacao').textContent = `${ocupacao}%`;
@@ -911,12 +913,12 @@
 
             // Veículos em manutenção
             const manutencaoList = document.getElementById('manutencaoList');
-            const veiculosManutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica'].includes(v.status));
+            const veiculosManutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica','alvara'].includes(v.status));
             if (veiculosManutencao.length === 0) {
                 manutencaoList.innerHTML = '<div style="opacity:0.6;text-align:center;padding:30px;">Nenhum veículo em manutenção 🎉</div>';
             } else {
                 manutencaoList.innerHTML = veiculosManutencao.map(v => {
-                    const statusMap = { mecanica: ['status-mecanica','Mecânica'], funilaria: ['status-funilaria','Funilaria'], eletrica: ['status-eletrica','Elétrica'] };
+                    const statusMap = { mecanica: ['status-mecanica','Mecânica'], funilaria: ['status-funilaria','Funilaria'], eletrica: ['status-eletrica','Elétrica'], alvara: ['status-alvara','Aguardando Alvará'] };
                     const [sc, st] = statusMap[v.status] || ['status-manutencao','Manutenção'];
                     
                     let previsaoHTML = '';
