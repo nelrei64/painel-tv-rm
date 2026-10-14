@@ -754,6 +754,9 @@
         // Motoristas "Aguardando carro" agora vêm do CRM (Painel do dia), não mais da planilha ficha aprovacao
         const API_MOTORISTAS_URL = 'https://painelrm.moverexperience.com/api/tv/motoristas-aguardando';
         const API_DEVOLUCOES_URL = 'https://painelrm.moverexperience.com/api/tv/devolucoes-avisadas';
+        // Ocupação da FONTE ÚNICA (módulo "Ocupação da Frota" do sistema), pra bater
+        // com o Dashboard 360 / Indicadores. Se falhar, cai no cálculo alugados÷total.
+        const API_OCUPACAO_URL = 'https://painelrm.moverexperience.com/api/tv/ocupacao';
         const META_OCUPACAO = 95;
         const INTERVALO_ATUALIZACAO = 60000; // 60 segundos
 
@@ -763,6 +766,20 @@
         let statusAnterior = {};
         let ocupacaoOntem = null;
         let historicoDiario = {};
+        let ocupacaoModulo = null; // ocupação do módulo (fonte única); null = usa alugados÷total
+
+        // Busca a ocupação oficial do módulo "Ocupação da Frota" do sistema.
+        async function buscarOcupacaoModulo() {
+            try {
+                const r = await fetch(API_OCUPACAO_URL);
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                const d = await r.json();
+                ocupacaoModulo = (d && typeof d.ocupacao === 'number') ? d.ocupacao : null;
+            } catch (e) {
+                console.error('Ocupação (módulo) indisponível, usando alugados÷total:', e);
+                ocupacaoModulo = null;
+            }
+        }
 
         // Rotação de telas
         let telaAtual = 1;
@@ -829,6 +846,7 @@
                     veiculos = novosVeiculos;
                 }
 
+                await buscarOcupacaoModulo(); // ocupação da fonte única (antes de desenhar)
                 atualizarDashboard();
                 salvarOcupacaoDoDia();
                 // Som removido da atualização automática - toca apenas nas celebrações
@@ -850,7 +868,10 @@
             const disponiveis = veiculos.filter(v => v.status === 'disponivel').length;
             const alugados = veiculos.filter(v => v.status === 'alugado').length;
             const manutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica','alvara'].includes(v.status)).length;
-            const ocupacao = total > 0 ? Math.round((alugados / total) * 100) : 0;
+            // Ocupação = fonte única (módulo); se indisponível, cai no alugados÷total.
+            const ocupacao = (typeof ocupacaoModulo === 'number')
+                ? Math.round(ocupacaoModulo)
+                : (total > 0 ? Math.round((alugados / total) * 100) : 0);
 
             document.getElementById('ocupacao').textContent = `${ocupacao}%`;
             document.getElementById('metaOcupacao').textContent = `Meta: ${META_OCUPACAO}%`;
@@ -1298,7 +1319,9 @@
         function salvarOcupacaoDoDia() {
             const total = veiculos.length;
             const alugados = veiculos.filter(v => v.status === 'alugado').length;
-            const ocupacao = total > 0 ? Math.round((alugados / total) * 100) : 0;
+            const ocupacao = (typeof ocupacaoModulo === 'number')
+                ? Math.round(ocupacaoModulo)
+                : (total > 0 ? Math.round((alugados / total) * 100) : 0);
             const hoje = new Date().toISOString().split('T')[0];
             historicoDiario[hoje] = ocupacao;
             localStorage.setItem('historicoDiario', JSON.stringify(historicoDiario));
