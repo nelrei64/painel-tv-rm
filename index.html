@@ -835,6 +835,8 @@
                     if (/manuten/.test(base)) return 'manutencao';
                     // Qualquer oficina (ex.: "Oficina Flexpar") ou reparo/conserto → manutenção
                     if (/oficin|reparo|conserto/.test(base)) return 'manutencao';
+                    // Higienização → conta como manutenção (fora de operação), com rótulo próprio
+                    if (/higieniz/.test(base)) return 'higienizacao';
                     if (/alvar/.test(base)) return 'alvara';
                     if (/disponiv/.test(base)) return 'disponivel';
                     if (/alugad|locad/.test(base)) return 'alugado';
@@ -869,7 +871,7 @@
             const total = veiculos.length;
             const disponiveis = veiculos.filter(v => v.status === 'disponivel').length;
             const alugados = veiculos.filter(v => v.status === 'alugado').length;
-            const manutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica','alvara'].includes(v.status)).length;
+            const manutencao = veiculos.filter(v => ['manutencao','higienizacao','mecanica','funilaria','eletrica','alvara'].includes(v.status)).length;
             // Ocupação = fonte única (módulo); se indisponível, cai no alugados÷total.
             const ocupacao = (typeof ocupacaoModulo === 'number')
                 ? Math.round(ocupacaoModulo)
@@ -936,12 +938,12 @@
 
             // Veículos em manutenção
             const manutencaoList = document.getElementById('manutencaoList');
-            const veiculosManutencao = veiculos.filter(v => ['manutencao','mecanica','funilaria','eletrica','alvara'].includes(v.status));
+            const veiculosManutencao = veiculos.filter(v => ['manutencao','higienizacao','mecanica','funilaria','eletrica','alvara'].includes(v.status));
             if (veiculosManutencao.length === 0) {
                 manutencaoList.innerHTML = '<div style="opacity:0.6;text-align:center;padding:30px;">Nenhum veículo em manutenção 🎉</div>';
             } else {
                 manutencaoList.innerHTML = veiculosManutencao.map(v => {
-                    const statusMap = { mecanica: ['status-mecanica','Mecânica'], funilaria: ['status-funilaria','Funilaria'], eletrica: ['status-eletrica','Elétrica'], alvara: ['status-alvara','Aguardando Alvará'] };
+                    const statusMap = { mecanica: ['status-mecanica','Mecânica'], funilaria: ['status-funilaria','Funilaria'], eletrica: ['status-eletrica','Elétrica'], alvara: ['status-alvara','Aguardando Alvará'], higienizacao: ['status-manutencao','Higienização'] };
                     const [sc, st] = statusMap[v.status] || ['status-manutencao','Manutenção'];
                     
                     let previsaoHTML = '';
@@ -1003,7 +1005,7 @@
         }
         function renderizarEntregas() {
             const fmt = d => { const p = parsearData(d); return p ? p.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : d; };
-            const naOficina = s => ['manutencao','mecanica','funilaria','eletrica'].includes(s);
+            const naOficina = s => ['manutencao','higienizacao','mecanica','funilaria','eletrica'].includes(s);
             // Oficina: TODO carro EM MANUTENÇÃO com previsão de entrega
             const oficina = veiculos
                 .filter(v => naOficina(v.status) && (v.nova_previsao || v.previsao_entrega))
