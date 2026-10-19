@@ -833,6 +833,8 @@
                     if (/eletric/.test(base)) return 'eletrica';
                     if (/mecanic|motor|revisao/.test(base)) return 'mecanica';
                     if (/manuten/.test(base)) return 'manutencao';
+                    // Qualquer oficina (ex.: "Oficina Flexpar") ou reparo/conserto → manutenção
+                    if (/oficin|reparo|conserto/.test(base)) return 'manutencao';
                     if (/alvar/.test(base)) return 'alvara';
                     if (/disponiv/.test(base)) return 'disponivel';
                     if (/alugad|locad/.test(base)) return 'alugado';
